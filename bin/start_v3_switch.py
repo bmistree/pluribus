@@ -8,16 +8,22 @@ procs_to_kill = []
 
 def run():
     signal.signal(signal.SIGINT, signal_handler)
+    output_file = open('/dev/null','w')
     
     print '\nStarting mininet\n'
     mn_cmd_vec = ['mn','--controller=remote']
-    procs_to_kill.append(subprocess.Popen(mn_cmd_vec, shell=False))
+    procs_to_kill.append(
+        subprocess.Popen(
+            mn_cmd_vec, shell=False,
+            stdout=output_file,stderr=output_file))
     
     time.sleep(3)
     
     print '\nTransitioning to OpenFlow v 1.3\n'
     version_cmd_vec = ['ovs-vsctl','set','bridge','s1','protocols=OpenFlow13']
-    subprocess.Popen(version_cmd_vec, shell=False)
+    subprocess.Popen(
+        version_cmd_vec, shell=False,
+        stdout=output_file,stderr=output_file)
 
     while True:
         time.sleep(1)
