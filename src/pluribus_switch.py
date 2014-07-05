@@ -60,11 +60,3 @@ class PluribusSwitch(app_manager.RyuApp):
     #         priority=ofproto.OFP_DEFAULT_PRIORITY,
     #         flags=ofproto.OFPFF_SEND_FLOW_REM, actions=actions)
     #     datapath.send_msg(mod)
-
-if __name__ == '__main__':
-    import time
-    ps = PluribusSwitch()
-    for i in range(0,50):
-        time.sleep(5)
-        print '%i of %i' % (i,50)
-    
