@@ -1,3 +1,5 @@
+import threading
+import time
 
 from ryu.base import app_manager
 from ryu.controller import mac_to_port
@@ -18,6 +20,42 @@ class PluribusSwitch(app_manager.RyuApp):
         super(PluribusSwitch, self).__init__(*args, **kwargs)
         self.switch_dp = None
 
+    def try_install(self):
+        time.sleep(5)
+        
+        if self.switch_dp is None:
+            print 'No attached switch'
+            return
+        
+        match = self.switch_dp.ofproto_parser.OFPMatch(
+            in_phy_port=1)
+        priority = self.switch_dp.ofproto.OFP_DEFAULT_PRIORITY
+        # should just be a drop??
+        actions = []
+        table_id = 1
+        self.add_flow_mod(match,instructions,priority,table_id)
+        
+        
+    def add_flow_mod(self,match,instructions,priority,table_id):
+        flow_mod = self.switch_dp.ofproto_parser.OFPFlowMod(
+            # default
+            datapath=self.switch_dp, cookie=0,
+            cookie_mask=0,
+
+            table_id=table_id,
+                        
+            command=self.switch_dp.ofproto.OFPFC_ADD,
+            idle_timeout=0, hard_timeout=0,
+
+            priority=priority,
+
+            buffer_id = self.switch_dp.ofproto.OFP_NO_BUFFER,
+            out_port=0,out_group=0,flags=0,
+            
+            match = match,
+            instructions=instructions)
+        
+        
     @set_ev_cls(conf_switch.EventConfSwitchSet)
     def conf_switch_set_handler(self, ev):
         print '\n\nGot envent set\n\n'
@@ -39,6 +77,10 @@ class PluribusSwitch(app_manager.RyuApp):
         if ev.dp.state == MAIN_DISPATCHER:
             print 'Got new switch'
             self.switch_dp = ev.dp
+            print self.switch_dp.ofproto
+            t = threading.Thread(target=self.try_install)
+            t.start()
+
 
             
     # def get_switch_features(self):
