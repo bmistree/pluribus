@@ -12,7 +12,7 @@ from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet
 from ryu.controller import conf_switch
 from ryu.controller import dpset
-
+import ryu.utils
 
 class PluribusSwitch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -35,7 +35,8 @@ class PluribusSwitch(app_manager.RyuApp):
 
         # try to install a new flow mod
         match = self.switch_dp.ofproto_parser.OFPMatch(
-            in_phy_port=1)
+            in_port=1)
+        
         priority = self.switch_dp.ofproto.OFP_DEFAULT_PRIORITY
         table_id = 1
         # test is to add a goto
@@ -89,9 +90,21 @@ class PluribusSwitch(app_manager.RyuApp):
             match,
             instructions)
 
-        print '\nSending flow mod\n'
         self.switch_dp.send_msg(flow_mod_msg)
+        print '\nSending flow mod\n'
+        
 
+    @set_ev_cls(ofp_event.EventOFPErrorMsg,
+                [CONFIG_DISPATCHER, MAIN_DISPATCHER])
+    def error_msg_handler(self, ev):
+        msg = ev.msg
+
+        print '\n'
+        print ('OFPErrorMsg received: type=0x%02x code=0x%02x' %
+               (msg.type, msg.code))
+        print (ryu.utils.hex_array(msg.data))
+        print msg.data
+        print '\n'
         
     @set_ev_cls(ofp_event.EventOFPEchoRequest,[MAIN_DISPATCHER])
     def recv_echo_response(self, ev):
