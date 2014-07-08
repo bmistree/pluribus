@@ -22,9 +22,8 @@ def run():
     print '\nTransitioning to OpenFlow v 1.3\n'
     version_cmd_vec = ['ovs-vsctl','set','bridge','s1','protocols=OpenFlow13']
     subprocess.Popen(
-        version_cmd_vec, shell=False)
-        # stdout=output_file)
-        #stderr=output_file)
+        version_cmd_vec, shell=False,stdout=output_file,
+        stderr=output_file)
 
     while True:
         time.sleep(1)
