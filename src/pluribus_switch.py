@@ -8,6 +8,7 @@ from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls, set_ev_handler
 from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionGotoTable
 from ryu.ofproto.ofproto_v1_3_parser import OFPEchoRequest
+from ryu.ofproto.ofproto_v1_3_parser import OFPPortDescStatsRequest
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet
 from ryu.controller import conf_switch
@@ -27,12 +28,15 @@ class PluribusSwitch(app_manager.RyuApp):
         '''
         Simple example method to try installing a dummy rule
         '''
-        time.sleep(10)
+        time.sleep(20)
         
         if self.switch_dp is None:
             print 'No attached switch'
             return
 
+        print '\nSending request\n'
+        self.send_port_stats_request()
+        
         # try to install a new flow mod
         match = self.switch_dp.ofproto_parser.OFPMatch(
             in_port=1)
@@ -67,6 +71,14 @@ class PluribusSwitch(app_manager.RyuApp):
             # not yet initialized
             assert False
 
+    def send_port_stats_request(self):
+        '''
+        Request port stats
+        '''
+        print '\nSending port stats request\n'
+        port_desc_stats_msg = OFPPortDescStatsRequest(self.switch_dp)
+        self.switch_dp.send_msg(port_desc_stats_msg)
+            
             
     def add_flow_mod(self,match,instructions,priority,table_id):
         flow_mod_msg = self.switch_dp.ofproto_parser.OFPFlowMod(
@@ -92,8 +104,26 @@ class PluribusSwitch(app_manager.RyuApp):
 
         self.switch_dp.send_msg(flow_mod_msg)
         print '\nSending flow mod\n'
-        
 
+    @set_ev_cls(ofp_event.EventOFPPortDescStatsReply, [MAIN_DISPATCHER])
+    def recv_port_stats_response(self,ev):
+        ports = []
+        print '\nReceived port stats response\n'
+        for p in ev.msg.body:
+            ports.append('port_no=%d hw_addr=%s name=%s config=0x%08x '
+                         'state=0x%08x curr=0x%08x advertised=0x%08x '
+                         'supported=0x%08x peer=0x%08x curr_speed=%d '
+                         'max_speed=%d' %
+                         (p.port_no, p.hw_addr,
+                          p.name, p.config,
+                          p.state, p.curr, p.advertised,
+                          p.supported, p.peer, p.curr_speed,
+                          p.max_speed))
+        print '\n'
+        for port in ports:
+            print port + '\n'
+        print '\n'
+                
     @set_ev_cls(ofp_event.EventOFPErrorMsg,
                 [CONFIG_DISPATCHER, MAIN_DISPATCHER])
     def error_msg_handler(self, ev):
