@@ -19,6 +19,10 @@ from port_util import set_logical_physical
 from port_util import PortNameNumber
 from port_util import num_principals_from_num_logical_port_pairs
 
+class SwitchState(object):
+    INITIALIZING = 0
+    RUNNING = 0
+
 
 class PluribusSwitch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -26,11 +30,11 @@ class PluribusSwitch(app_manager.RyuApp):
     
     def __init__(self, *args, **kwargs):
         super(PluribusSwitch, self).__init__(*args, **kwargs)
+        self.state = SwitchState.INITIALIZING
+        
         self.switch_dp = None
         self.switch_num_tables = None
-        
-        self.initialized = False
-        
+
         self.port_name_number_list = None
         self.logical_port_pair_halves = None
         self.num_principals_can_support = None
@@ -124,21 +128,26 @@ class PluribusSwitch(app_manager.RyuApp):
         different method, which returns port stats to connected
         principals.  However, currently calling in main dispatcher
         '''
-        if not self.initialized:
-            self.port_name_number_list = []
-            for p in ev.msg.body:
-                self.port_name_number_list.append(
-                    PortNameNumber(p.name,p.port_no))
 
-            self.logical_port_pair_halves = (
-                set_logical_physical(self.port_name_number_list))
+        if self.state == SwitchState.INITIALIZING:
+            self._init_recv_port_stats_response_config(ev)
+        else:
+            print '\nReceived port stats config\n'
 
-            num_logical_port_pairs = len(self.logical_port_pair_halves)
-            self.num_principals_can_support = (
-                num_principals_from_num_logical_port_pairs(num_logical_port_pairs))
+    def _init_recv_port_stats_response_config(self,ev):
+        self.port_name_number_list = []
+        for p in ev.msg.body:
+            self.port_name_number_list.append(
+                PortNameNumber(p.name,p.port_no))
 
-            # self.initialized = True
+        self.logical_port_pair_halves = (
+            set_logical_physical(self.port_name_number_list))
 
+        num_logical_port_pairs = len(self.logical_port_pair_halves)
+        self.num_principals_can_support = (
+            num_principals_from_num_logical_port_pairs(num_logical_port_pairs))
+
+        self.state = SwitchState.RUNNING
         self._debug_print_ports()
             
 
