@@ -18,21 +18,15 @@ import ryu.utils
 from port_util import set_logical_physical
 from port_util import PortNameNumber
 from port_util import num_principals_from_num_logical_port_pairs
+from conf import PORT_STATS_DELAY_TIME
 
 class SwitchState(object):
     # have no details about swtich
     UNINITIALIZED = 0
-    # as part of configuration, get info about number of switch
-    # tables.  When receive this info, transition into
-    # RECEIVED_SWITCH_FEATURES state, if have already received port
-    # stats, or go directly to running.  Vice versa for port stats
-    # (which tells us how many logical ports we can handle).
-    RECEIVED_SWITCH_FEATURES = 1
-    RECEIVED_PORT_STATS = 2
 
     # In running state, can accept commands from principals'
     # controllers.
-    RUNNING = 3
+    RUNNING = 1
 
 
 class PluribusSwitch(app_manager.RyuApp):
@@ -72,7 +66,7 @@ class PluribusSwitch(app_manager.RyuApp):
         # test is to add a goto
         instructions = [OFPInstructionGotoTable(table_id+1)]
         self.add_flow_mod(match,instructions,priority,table_id)
-        
+
     def send_feature_request(self):
         '''
         Send a request to get switch's features
@@ -97,6 +91,20 @@ class PluribusSwitch(app_manager.RyuApp):
             # not yet initialized
             assert False
 
+    def delayed_port_stats_request(self,seconds_to_delay):
+        '''
+        @param {int} seconds_to_delay
+        
+        Wait seconds_to_delay before sending a port stats request.
+        '''
+        t = threading.Thread(
+            target=self._delayed_port_stats_request,args=(seconds_to_delay,))
+        t.start()
+
+    def _delayed_port_stats_request(self,seconds_to_delay):
+        time.sleep(seconds_to_delay)
+        self.send_port_stats_request()
+            
     def send_port_stats_request(self):
         '''
         Request port stats
@@ -164,8 +172,6 @@ class PluribusSwitch(app_manager.RyuApp):
         self._debug_print_ports()
 
         if self.state == SwitchState.UNINITIALIZED:
-            self.state = SwitchState.RECEIVED_PORT_STATS
-        elif self.state == SwitchState.RECEIVED_SWITCH_FEATURES:
             self.init_complete()
         #### DEBUG
         else:
@@ -204,35 +210,23 @@ class PluribusSwitch(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPEchoRequest,[MAIN_DISPATCHER])
     def recv_echo_response(self, ev):
         print '\nReceived echo response\n'
+
         
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures,[CONFIG_DISPATCHER])
     def recv_switch_features_response(self,ev):
         msg = ev.msg
-        datapath = msg.datapath
         self.switch_num_tables = msg.n_tables
+        self.switch_dp = msg.datapath
 
+        
         print '\nReceived switch features\n'
         print msg
         print msg.n_tables
         
         if self.state == SwitchState.UNINITIALIZED:
-            self.state = SwitchState.RECEIVED_SWITCH_FEATURES
-        elif self.state == SwitchState.RECEIVED_PORT_STATS:
-            self.init_complete()
+             self.delayed_port_stats_request(PORT_STATS_DELAY_TIME)
         #### DEBUG
         else:
             print 'Unexpected state transition'
             assert False
         #### END DEBUG
-
-        
-    @set_ev_cls(dpset.EventDP, [CONFIG_DISPATCHER])
-    def dp_evt (self,ev):
-        print '\n\nGot new switch\n\n'
-        self.switch_dp = ev.dp
-
-        if self.state == SwitchState.UNINITIALIZED:
-            self.send_port_stats_request()
-        else:
-            print self.state
-            print '\nReceived non init dp_evt\n'
