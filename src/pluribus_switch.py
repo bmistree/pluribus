@@ -20,8 +20,19 @@ from port_util import PortNameNumber
 from port_util import num_principals_from_num_logical_port_pairs
 
 class SwitchState(object):
-    INITIALIZING = 0
-    RUNNING = 0
+    # have no details about swtich
+    UNINITIALIZED = 0
+    # as part of configuration, get info about number of switch
+    # tables.  When receive this info, transition into
+    # RECEIVED_SWITCH_FEATURES state, if have already received port
+    # stats, or go directly to running.  Vice versa for port stats
+    # (which tells us how many logical ports we can handle).
+    RECEIVED_SWITCH_FEATURES = 1
+    RECEIVED_PORT_STATS = 2
+
+    # In running state, can accept commands from principals'
+    # controllers.
+    RUNNING = 3
 
 
 class PluribusSwitch(app_manager.RyuApp):
@@ -30,7 +41,7 @@ class PluribusSwitch(app_manager.RyuApp):
     
     def __init__(self, *args, **kwargs):
         super(PluribusSwitch, self).__init__(*args, **kwargs)
-        self.state = SwitchState.INITIALIZING
+        self.state = SwitchState.UNINITIALIZED
         
         self.switch_dp = None
         self.switch_num_tables = None
@@ -128,13 +139,16 @@ class PluribusSwitch(app_manager.RyuApp):
         different method, which returns port stats to connected
         principals.  However, currently calling in main dispatcher
         '''
-
-        if self.state == SwitchState.INITIALIZING:
+        if self.state != SwitchState.RUNNING:
             self._init_recv_port_stats_response_config(ev)
         else:
             print '\nReceived port stats config\n'
 
     def _init_recv_port_stats_response_config(self,ev):
+        '''
+        As part of initialization, determine which ports are logical
+        and which ports are physical.
+        '''
         self.port_name_number_list = []
         for p in ev.msg.body:
             self.port_name_number_list.append(
@@ -147,9 +161,21 @@ class PluribusSwitch(app_manager.RyuApp):
         self.num_principals_can_support = (
             num_principals_from_num_logical_port_pairs(num_logical_port_pairs))
 
-        self.state = SwitchState.RUNNING
         self._debug_print_ports()
-            
+
+        if self.state == SwitchState.UNINITIALIZED:
+            self.state = SwitchState.RECEIVED_PORT_STATS
+        elif self.state == SwitchState.RECEIVED_SWITCH_FEATURES:
+            self.init_complete()
+        #### DEBUG
+        else:
+            print 'Unexpected state transition when receiving response'
+            assert False
+        #### END DEBUG
+        
+    def init_complete(self):
+        self.state = SwitchState.RUNNING
+        print '\nFinished initialization\n'
 
     def _debug_print_ports(self):
         '''
@@ -185,10 +211,28 @@ class PluribusSwitch(app_manager.RyuApp):
         datapath = msg.datapath
         self.switch_num_tables = msg.n_tables
 
+        print '\nReceived switch features\n'
+        print msg
+        print msg.n_tables
+        
+        if self.state == SwitchState.UNINITIALIZED:
+            self.state = SwitchState.RECEIVED_SWITCH_FEATURES
+        elif self.state == SwitchState.RECEIVED_PORT_STATS:
+            self.init_complete()
+        #### DEBUG
+        else:
+            print 'Unexpected state transition'
+            assert False
+        #### END DEBUG
+
+        
     @set_ev_cls(dpset.EventDP, [CONFIG_DISPATCHER])
     def dp_evt (self,ev):
-        print 'Got new switch'
+        print '\n\nGot new switch\n\n'
         self.switch_dp = ev.dp
-        print self.switch_dp.ofproto
-        t = threading.Thread(target=self.try_install)
-        t.start()
+
+        if self.state == SwitchState.UNINITIALIZED:
+            self.send_port_stats_request()
+        else:
+            print self.state
+            print '\nReceived non init dp_evt\n'
