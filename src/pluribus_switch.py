@@ -1,5 +1,7 @@
 import threading
 import time
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 from ryu.base import app_manager
 from ryu.controller import mac_to_port
@@ -19,6 +21,7 @@ from port_util import set_logical_physical
 from port_util import PortNameNumber
 from port_util import num_principals_from_num_logical_port_pairs
 from conf import PORT_STATS_DELAY_TIME
+
 
 class SwitchState(object):
     # have no details about swtich
@@ -61,7 +64,6 @@ class PluribusSwitch(app_manager.RyuApp):
         Send an echo to switch
         '''
         if self.switch_dp is not None:
-            print '\nSending echo request\n'
             echo_msg = OFPEchoRequest(self.switch_dp)
             self.switch_dp.send_msg(echo_msg)
         else:
@@ -86,7 +88,6 @@ class PluribusSwitch(app_manager.RyuApp):
         '''
         Request port stats
         '''
-        print '\nSending port stats request\n'
         port_desc_stats_msg = OFPPortDescStatsRequest(self.switch_dp)
         self.switch_dp.send_msg(port_desc_stats_msg)
             
@@ -114,20 +115,16 @@ class PluribusSwitch(app_manager.RyuApp):
             instructions)
 
         self.switch_dp.send_msg(flow_mod_msg)
-        print '\nSending flow mod\n'
 
         
     @set_ev_cls(ofp_event.EventOFPPortDescStatsReply, [MAIN_DISPATCHER])
-    def recv_port_stats_response_config(self,ev):
-        '''
-        Note: only executes during config.  After config, should run
-        different method, which returns port stats to connected
-        principals.  However, currently calling in main dispatcher
-        '''
+    def recv_port_stats_response(self,ev):
         if self.state != SwitchState.RUNNING:
             self._init_recv_port_stats_response_config(ev)
         else:
-            print '\nReceived port stats config\n'
+            # actually process port stats responses for 
+            logging.error(
+                'Received port stats when running.  Must finish.')
 
     def _init_recv_port_stats_response_config(self,ev):
         '''
@@ -152,42 +149,39 @@ class PluribusSwitch(app_manager.RyuApp):
             self.init_complete()
         #### DEBUG
         else:
-            print 'Unexpected state transition when receiving response'
+            logging.error('Unexpected state transition when receiving response')
             assert False
         #### END DEBUG
         
     def init_complete(self):
         self.state = SwitchState.RUNNING
-        print '\nFinished initialization\n'
+        logging.info('Finished initialization')
 
     def _debug_print_ports(self):
         '''
         Helper method to ensure that got expected number of ports, etc.
         '''
-        print '\n'
-        print 'Total num ports: %i' % len(self.port_name_number_list)
-        print 'Num logical port pairs: %i' % len(self.logical_port_pair_halves)
-        print (
-            'Num principals can support: %i' % self.num_principals_can_support)
-        print '\n'
+        port_log_msg = (
+            ('Total num ports: %i.  ' %
+             len(self.port_name_number_list)) +
+            ('Num logical port pairs: %i.  ' %
+             len(self.logical_port_pair_halves)) +
+            ('Num principals can support: %i.' %
+             self.num_principals_can_support))
+        logging.info(port_log_msg)
             
                 
     @set_ev_cls(ofp_event.EventOFPErrorMsg,
                 [CONFIG_DISPATCHER, MAIN_DISPATCHER])
     def error_msg_handler(self, ev):
         msg = ev.msg
-
-        print '\n'
-        print ('OFPErrorMsg received: type=0x%02x code=0x%02x' %
-               (msg.type, msg.code))
-        print (ryu.utils.hex_array(msg.data))
-        print msg.data
-        print '\n'
+        logging.error(
+            'OFPErrorMsg received: type=0x%02x code=0x%02x' %
+            (msg.type, msg.code))
         
     @set_ev_cls(ofp_event.EventOFPEchoRequest,[MAIN_DISPATCHER])
     def recv_echo_response(self, ev):
-        print '\nReceived echo response\n'
-
+        pass
         
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures,[CONFIG_DISPATCHER])
     def recv_switch_features_response(self,ev):
@@ -195,15 +189,14 @@ class PluribusSwitch(app_manager.RyuApp):
         self.switch_num_tables = msg.n_tables
         self.switch_dp = msg.datapath
 
-        
-        print '\nReceived switch features\n'
-        print msg
-        print msg.n_tables
+        logging.info(
+            'Received switch features.  Num tables %i' %
+            msg.n_tables)
         
         if self.state == SwitchState.UNINITIALIZED:
              self.delayed_port_stats_request(PORT_STATS_DELAY_TIME)
         #### DEBUG
         else:
-            print 'Unexpected state transition'
+            logging.error('Unexpected state transition')
             assert False
         #### END DEBUG
