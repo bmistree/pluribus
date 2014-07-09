@@ -43,29 +43,6 @@ class PluribusSwitch(app_manager.RyuApp):
         self.port_name_number_list = None
         self.logical_port_pair_halves = None
         self.num_principals_can_support = None
-        
-    def try_install(self):
-        '''
-        Simple example method to try installing a dummy rule
-        '''
-        time.sleep(20)
-        
-        if self.switch_dp is None:
-            print 'No attached switch'
-            return
-
-        print '\nSending request\n'
-        self.send_port_stats_request()
-        
-        # try to install a new flow mod
-        match = self.switch_dp.ofproto_parser.OFPMatch(
-            in_port=1)
-        
-        priority = self.switch_dp.ofproto.OFP_DEFAULT_PRIORITY
-        table_id = 1
-        # test is to add a goto
-        instructions = [OFPInstructionGotoTable(table_id+1)]
-        self.add_flow_mod(match,instructions,priority,table_id)
 
     def send_feature_request(self):
         '''
