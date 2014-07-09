@@ -36,7 +36,7 @@ def set_logical_physical(port_name_number_list):
         for port_name_number in port_name_number_list:
             if port_name_number.port_name == port_a_name:
                 port_name_number_a = port_name_number
-            if port_name_number.port_name == port_b_name:
+            elif port_name_number.port_name == port_b_name:
                 port_name_number_b = port_name_number
 
         # no more principals to match
@@ -103,7 +103,7 @@ class PortNameNumber(object):
 #
 # Where int goes from 0 to the number of logical port pairs in the
 # system.
-LOOPBACK_PORT_NAME_PREFIX = 'loopback_port_'
+LOOPBACK_PORT_NAME_PREFIX = 'lback_port_'
 
 def produce_loopback_port_a(port_pair_number):
     '''
