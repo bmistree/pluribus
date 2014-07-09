@@ -15,6 +15,11 @@ from ryu.controller import conf_switch
 from ryu.controller import dpset
 import ryu.utils
 
+from port_util import set_logical_physical
+from port_util import PortNameNumber
+from port_util import num_principals_from_num_logical_port_pairs
+
+
 class PluribusSwitch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     _CONTEXTS = {'dpset': dpset.DPSet}
@@ -23,6 +28,12 @@ class PluribusSwitch(app_manager.RyuApp):
         super(PluribusSwitch, self).__init__(*args, **kwargs)
         self.switch_dp = None
         self.switch_num_tables = None
+        
+        self.initialized = False
+        
+        self.port_name_number_list = None
+        self.logical_port_pair_halves = None
+        self.num_principals_can_support = None
         
     def try_install(self):
         '''
@@ -105,24 +116,43 @@ class PluribusSwitch(app_manager.RyuApp):
         self.switch_dp.send_msg(flow_mod_msg)
         print '\nSending flow mod\n'
 
+        
     @set_ev_cls(ofp_event.EventOFPPortDescStatsReply, [MAIN_DISPATCHER])
-    def recv_port_stats_response(self,ev):
-        ports = []
-        print '\nReceived port stats response\n'
-        for p in ev.msg.body:
-            ports.append('port_no=%d hw_addr=%s name=%s config=0x%08x '
-                         'state=0x%08x curr=0x%08x advertised=0x%08x '
-                         'supported=0x%08x peer=0x%08x curr_speed=%d '
-                         'max_speed=%d' %
-                         (p.port_no, p.hw_addr,
-                          p.name, p.config,
-                          p.state, p.curr, p.advertised,
-                          p.supported, p.peer, p.curr_speed,
-                          p.max_speed))
+    def recv_port_stats_response_config(self,ev):
+        '''
+        Note: only executes during config.  After config, should run
+        different method, which returns port stats to connected
+        principals.  However, currently calling in main dispatcher
+        '''
+        if not self.initialized:
+            self.port_name_number_list = []
+            for p in ev.msg.body:
+                self.port_name_number_list.append(
+                    PortNameNumber(p.name,p.port_no))
+
+            self.logical_port_pair_halves = (
+                set_logical_physical(self.port_name_number_list))
+
+            num_logical_port_pairs = len(self.logical_port_pair_halves)
+            self.num_principals_can_support = (
+                num_principals_from_num_logical_port_pairs(num_logical_port_pairs))
+
+            # self.initialized = True
+
+        self._debug_print_ports()
+            
+
+    def _debug_print_ports(self):
+        '''
+        Helper method to ensure that got expected number of ports, etc.
+        '''
         print '\n'
-        for port in ports:
-            print port + '\n'
+        print 'Total num ports: %i' % len(self.port_name_number_list)
+        print 'Num logical port pairs: %i' % len(self.logical_port_pair_halves)
+        print (
+            'Num principals can support: %i' % self.num_principals_can_support)
         print '\n'
+            
                 
     @set_ev_cls(ofp_event.EventOFPErrorMsg,
                 [CONFIG_DISPATCHER, MAIN_DISPATCHER])
