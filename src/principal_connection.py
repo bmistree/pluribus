@@ -6,6 +6,7 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPHello
 from ryu.ofproto import ofproto_v1_3, ofproto_v1_3_parser
 from ryu.ofproto import ofproto_protocol
 from ryu.controller.controller import Datapath
+from ryu.lib import hub
 
 from conf import pluribus_logger
     
@@ -23,10 +24,7 @@ class PrincipalConnection(object):
         }
 
         self._principal = principal
-        
-        self._principal_endpoint = rpc.EndPoint(
-            s,disp_table=table)
-        self._datapath = Datapath(s,(ipaddr,tcp_port))
+        self._datapath = Datapath(s,(ipaddr,str(tcp_port)))
         self._perform_handshake()
         
 
@@ -36,10 +34,13 @@ class PrincipalConnection(object):
         '''
         pluribus_logger.debug(
             'Sending handshake to principal %i' % self._principal.id)
+
+        self._datapath.serve()
         
-        ofp_hello = OFPHello(self._datapath)
-        ofp_hello.serialize()
-        self._principal_endpoint._send_message(ofp_hello.buf)
+        # ofp_hello = OFPHello(self._datapath)
+        # ofp_hello.serialize()
+        # self._principal_endpoint._send_message(ofp_hello.buf)
+        # self._server_thread = hub.spawn(self._principal_endpoint.serve)
 
         
     def _handle_request(self,m):

@@ -1,5 +1,15 @@
 import json
 import logging
+import sys
+import os
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname( os.path.abspath(__file__)),
+        '..','parser'))
+import extended_v3_parser
+
+
 
 CONF_FILENAME = 'pluribus.conf'
 HEAD_TABLE_ID = 0
