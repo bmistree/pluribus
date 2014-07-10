@@ -5,6 +5,11 @@ CONF_FILENAME = 'pluribus.conf'
 HEAD_TABLE_ID = 0
 
 pluribus_logger = logging.getLogger('pluribus')
+formatter = logging.Formatter('PLURIBUS: %(levelname)-8s  %(message)s')
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+pluribus_logger.addHandler(handler)
+pluribus_logger.propagate = False
 
 
 # wait this many seconds after receiving a switch before sending a
