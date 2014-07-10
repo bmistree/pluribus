@@ -1,6 +1,9 @@
 import sets
 import json
 
+from conf import pluribus_logger
+
+
 class Principal(object):
     STATIC_PRINCIPAL_IDENTIFIER = 0
     def __init__(self,physical_port_set,listening_ip_addr,
@@ -15,6 +18,16 @@ class Principal(object):
 
         self.id = Principal.STATIC_PRINCIPAL_IDENTIFIER
         Principal.STATIC_PRINCIPAL_IDENTIFIER += 1
+
+        pluribus_logger.debug(
+            ('Loaed principal with ports %(ports)s; ip addr ' +
+            '%(listening_ip_addr)s and ports %(listening_port)i.') %
+            {
+                'ports': str(self.physical_port_set),
+                'listening_ip_addr': str(self.listening_ip_addr),
+                'listening_port': self.listening_port_addr
+             })
+             
         
     def to_json_str(self):
         '''
@@ -46,9 +59,9 @@ def load_principals_from_json_file(filename):
     '''
     @return {list} --- Each element is a principal
     '''
-    with open(fileame,'r') as fd:
+    with open(filename,'r') as fd:
         file_contents = fd.read()
-    json_list = json.dumps(file_contents)
+    json_list = json.loads(file_contents)
 
     return map(
         lambda json_dict: principal_from_json_dict(json_dict),

@@ -1,6 +1,9 @@
 import json
+import logging
 
 CONF_FILENAME = 'pluribus.conf'
+
+pluribus_logger = logging.getLogger('pluribus')
 
 
 # wait this many seconds after receiving a switch before sending a
@@ -12,6 +15,12 @@ CONF_PORT_STATS_DELAY_TIME = 'PORT_STATS_DELAY_TIME'
 # None means that we should just use default principals
 JSON_PRINCIPALS_TO_LOAD_FILENAME = None
 CONF_JSON_PRINCIPALS_TO_LOAD_FILENAME = 'JSON_PRINCIPALS_TO_LOAD_FILENAME'
+
+
+# LOGGING_LEVEL = 'info'
+LOGGING_LEVEL = 'DEBUG'
+CONF_LOGGING_LEVEL = 'LOGGING_LEVEL'
+
 
 
 def load_conf():
@@ -32,5 +41,13 @@ def load_conf():
         global JSON_PRINCIPALS_TO_LOAD_FILENAME
         JSON_PRINCIPALS_TO_LOAD_FILENAME = (
             conf_param_dict[CONF_JSON_PRINCIPALS_TO_LOAD_FILENAME])
+
+    global LOGGING_LEVEL        
+    if CONF_LOGGING_LEVEL in conf_param_dict:
+        LOGGING_LEVEL = conf_param_dict[CONF_LOGGING_LEVEL]
+
+    pluribus_logger.setLevel(LOGGING_LEVEL)
+
+        
 
 load_conf()

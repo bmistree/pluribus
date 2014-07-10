@@ -1,7 +1,5 @@
 import threading
 import time
-import logging
-logging.basicConfig(level=logging.DEBUG)
 
 from ryu.base import app_manager
 from ryu.controller import mac_to_port
@@ -16,11 +14,16 @@ from ryu.lib.packet import packet
 from ryu.controller import conf_switch
 from ryu.controller import dpset
 import ryu.utils
+from ryu import cfg
+
+import conf
+from conf import PORT_STATS_DELAY_TIME,JSON_PRINCIPALS_TO_LOAD_FILENAME
+from conf import pluribus_logger
+from principals_util import load_principals_from_json_file
 
 from port_util import set_logical_physical
 from port_util import PortNameNumber
 from port_util import num_principals_from_num_logical_port_pairs
-from conf import PORT_STATS_DELAY_TIME
 
 
 class SwitchState(object):
@@ -38,8 +41,13 @@ class PluribusSwitch(app_manager.RyuApp):
     
     def __init__(self, *args, **kwargs):
         super(PluribusSwitch, self).__init__(*args, **kwargs)
+
+        self.principals = []
+        if JSON_PRINCIPALS_TO_LOAD_FILENAME is not None:
+            self.principals = load_principals_from_json_file(
+                JSON_PRINCIPALS_TO_LOAD_FILENAME)
+            
         self.state = SwitchState.UNINITIALIZED
-        
         self.switch_dp = None
         self.switch_num_tables = None
 
@@ -123,7 +131,7 @@ class PluribusSwitch(app_manager.RyuApp):
             self._init_recv_port_stats_response_config(ev)
         else:
             # actually process port stats responses for 
-            logging.error(
+            pluribus_logger.error(
                 'Received port stats when running.  Must finish.')
 
     def _init_recv_port_stats_response_config(self,ev):
@@ -149,13 +157,13 @@ class PluribusSwitch(app_manager.RyuApp):
             self.init_complete()
         #### DEBUG
         else:
-            logging.error('Unexpected state transition when receiving response')
+            pluribus_logger.error('Unexpected state transition when receiving response')
             assert False
         #### END DEBUG
         
     def init_complete(self):
         self.state = SwitchState.RUNNING
-        logging.info('Finished initialization')
+        pluribus_logger.info('Finished initialization')
 
     def _debug_print_ports(self):
         '''
@@ -168,14 +176,14 @@ class PluribusSwitch(app_manager.RyuApp):
              len(self.logical_port_pair_halves)) +
             ('Num principals can support: %i.' %
              self.num_principals_can_support))
-        logging.info(port_log_msg)
+        pluribus_logger.info(port_log_msg)
             
                 
     @set_ev_cls(ofp_event.EventOFPErrorMsg,
                 [CONFIG_DISPATCHER, MAIN_DISPATCHER])
     def error_msg_handler(self, ev):
         msg = ev.msg
-        logging.error(
+        pluribus_logger.error(
             'OFPErrorMsg received: type=0x%02x code=0x%02x' %
             (msg.type, msg.code))
         
@@ -189,7 +197,7 @@ class PluribusSwitch(app_manager.RyuApp):
         self.switch_num_tables = msg.n_tables
         self.switch_dp = msg.datapath
 
-        logging.info(
+        pluribus_logger.info(
             'Received switch features.  Num tables %i' %
             msg.n_tables)
         
@@ -197,6 +205,6 @@ class PluribusSwitch(app_manager.RyuApp):
              self.delayed_port_stats_request(PORT_STATS_DELAY_TIME)
         #### DEBUG
         else:
-            logging.error('Unexpected state transition')
+            pluribus_logger.error('Unexpected state transition')
             assert False
         #### END DEBUG
