@@ -154,6 +154,13 @@ class PluribusSwitch(app_manager.RyuApp):
         self.num_principals_can_support = (
             num_principals_from_num_logical_port_pairs(num_logical_port_pairs))
 
+        if self.num_principals_can_support < len(self.principals):
+            pluribus_logger.error (
+                '\nError: not enough logical ports.  ' +
+                ('Can only support %i principals, not %i.' %
+                 (self.num_principals_can_support, len(self.principals))))
+            assert False
+        
         self._debug_print_ports()
 
         if self.state == SwitchState.UNINITIALIZED:
@@ -166,10 +173,19 @@ class PluribusSwitch(app_manager.RyuApp):
         
     def _init_complete(self):
         '''
+        Install head tables and allocate logical ports to principals.
+        
         Connect to principals and show them the switch.
         '''
+        pluribus_logger.info('Completing initialization')
+
+        pluribus_logger.error('Still must install head table')
+        
         self.state = SwitchState.RUNNING
-        pluribus_logger.info('Finished initialization')
+        pluribus_logger.error('Sill must add logic for connecting to principals')
+        # for principal in self.principals:
+        #     principal.connect()
+
             
                         
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures,[CONFIG_DISPATCHER])

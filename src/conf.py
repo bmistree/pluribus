@@ -21,7 +21,6 @@ LOGGING_LEVEL = 'warn'
 CONF_LOGGING_LEVEL = 'LOGGING_LEVEL'
 
 
-
 def load_conf():
     conf_param_dict = {}
     try:

@@ -27,7 +27,6 @@ class Principal(object):
                 'listening_ip_addr': str(self.listening_ip_addr),
                 'listening_port': self.listening_port_addr
              })
-             
         
     def to_json_str(self):
         '''
