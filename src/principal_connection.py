@@ -1,12 +1,17 @@
 import socket
-
+import threading
 
 from ryu.lib import rpc
-from ryu.ofproto.ofproto_v1_3_parser import OFPHello
 from ryu.ofproto import ofproto_v1_3, ofproto_v1_3_parser
 from ryu.ofproto import ofproto_protocol
 from ryu.controller.controller import Datapath
 from ryu.lib import hub
+
+from ryu.controller import ofp_event
+from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
+from ryu.controller.handler import HANDSHAKE_DISPATCHER
+from ryu.controller.handler import set_ev_cls, set_ev_handler
+
 
 from conf import pluribus_logger
     
@@ -16,12 +21,6 @@ class PrincipalConnection(object):
     def __init__(self,ipaddr,tcp_port,principal):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ipaddr, tcp_port))
-
-        table = {
-            rpc.MessageType.REQUEST: self._handle_request,
-            rpc.MessageType.RESPONSE: self._handle_response,
-            rpc.MessageType.NOTIFY: self._handle_notification
-        }
 
         self._principal = principal
         self._datapath = Datapath(s,(ipaddr,str(tcp_port)))
@@ -35,20 +34,13 @@ class PrincipalConnection(object):
         pluribus_logger.debug(
             'Sending handshake to principal %i' % self._principal.id)
 
-        self._datapath.serve()
-        
-        # ofp_hello = OFPHello(self._datapath)
-        # ofp_hello.serialize()
-        # self._principal_endpoint._send_message(ofp_hello.buf)
-        # self._server_thread = hub.spawn(self._principal_endpoint.serve)
+        t = threading.Thread(self._datapath.serve)
+        t.start()
 
-        
-    def _handle_request(self,m):
-        print '\nHandling some request\n'
-    def _handle_response(self,m):
-        print '\nHandling some response\n'
-    def _handle_notification(self,m):
-        print '\nHandling some notification\n'
+    @set_ev_cls(ofp_event.OFPFeaturesRequest,
+                [HANDSHAKE_DISPATCHER,CONFIG_DISPATCHER,MAIN_DISPATCHER])
+    def recv_features_request(self, ev):
+        print '\n\nReceived features request\n\n'
 
 
 
