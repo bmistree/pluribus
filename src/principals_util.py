@@ -74,4 +74,4 @@ def principal_from_json_dict(json_dict):
     return Principal(
         sets.ImmutableSet(json_dict['physical_ports']),
         json_dict['listening_ip_addr'],
-        json_dict['listening_port_addr'])
+        int(json_dict['listening_port_addr']))
