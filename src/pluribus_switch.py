@@ -1,5 +1,7 @@
 import threading
 import time
+import math
+import itertools
 
 from ryu.base import app_manager
 from ryu.controller import mac_to_port
@@ -18,7 +20,7 @@ from ryu import cfg
 
 import conf
 from conf import PORT_STATS_DELAY_TIME,JSON_PRINCIPALS_TO_LOAD_FILENAME
-from conf import pluribus_logger
+from conf import pluribus_logger,HEAD_TABLE_ID
 from principals_util import load_principals_from_json_file
 
 from port_util import set_logical_physical
@@ -28,11 +30,19 @@ from port_util import num_principals_from_num_logical_port_pairs
 
 class SwitchState(object):
     # have no details about swtich
-    UNINITIALIZED = 0
+    UNINITIALIZED = 0,
+
+    # When get all ports, send flow mods to set up head table and send
+    # barrier.  While waiting on barrier response, in
+    # INSTALLING_HEAD_TABLES state.  On successful completion of
+    # barrier message, transition into RUNNING and connect to
+    # principals.
+    INSTALLING_HEAD_TABLES = 1,
+    
 
     # In running state, can accept commands from principals'
     # controllers.
-    RUNNING = 1
+    RUNNING = 2
 
 
 class PluribusSwitch(app_manager.RyuApp):
@@ -86,7 +96,9 @@ class PluribusSwitch(app_manager.RyuApp):
         port_desc_stats_msg = OFPPortDescStatsRequest(self.switch_dp)
         self.switch_dp.send_msg(port_desc_stats_msg)
             
-            
+    def send_barrier(self):
+        self.switch_dp.send_barrier()
+        
     def add_flow_mod(self,match,instructions,priority,table_id):
         flow_mod_msg = self.switch_dp.ofproto_parser.OFPFlowMod(
             self.switch_dp, # datapath
@@ -111,7 +123,16 @@ class PluribusSwitch(app_manager.RyuApp):
 
         self.switch_dp.send_msg(flow_mod_msg)
 
-        
+    @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)                
+    def recv_barrier_response(self,ev):
+        if self.state == SwitchState.INSTALLING_HEAD_TABLES:
+            self._transition_from_installing_head_tables()
+        else:
+            # actually process barrier response
+            pluribus_logger.error(
+                'Received barrier response when running.  Must finish.')
+
+
     @set_ev_cls(ofp_event.EventOFPPortDescStatsReply, [MAIN_DISPATCHER])
     def recv_port_stats_response(self,ev):
         if self.state != SwitchState.RUNNING:
@@ -126,9 +147,21 @@ class PluribusSwitch(app_manager.RyuApp):
                 [CONFIG_DISPATCHER, MAIN_DISPATCHER])
     def error_msg_handler(self, ev):
         msg = ev.msg
+        
+        if self.state not in SwitchState.RUNNING:
+            # no graceful retries or anything if get an error while
+            # setting up head tables, getting port descriptors, etc.
+            # Just fail.
+            pluribus_logger.error(
+                'OFPErrorMsg received during initialization: ' +
+                ('type=0x%02x code=0x%02x  ' % (msg.type, msg.code)) +
+                'QUITTING')
+            assert False
+
         pluribus_logger.error(
-            'OFPErrorMsg received: type=0x%02x code=0x%02x' %
-            (msg.type, msg.code))
+            'Received ofp error.  Must finish handler method.')
+
+        
         
     @set_ev_cls(ofp_event.EventOFPEchoRequest,[MAIN_DISPATCHER])
     def recv_echo_response(self, ev):
@@ -164,30 +197,126 @@ class PluribusSwitch(app_manager.RyuApp):
         self._debug_print_ports()
 
         if self.state == SwitchState.UNINITIALIZED:
-            self._init_complete()
+            self._transition_from_uninitialized()
         #### DEBUG
         else:
-            pluribus_logger.error('Unexpected state transition when receiving response')
+            pluribus_logger.error(
+                'Unexpected state transition when receiving response')
+            assert False
+        #### END DEBUG
+
+    def _transition_from_installing_head_tables(self):
+        '''
+        Should connect to principals and transition into running
+        state.
+        '''
+        pluribus_logger.info('Transitioning into running state')
+        self.state = SwitchState.RUNNING
+
+        # FIXME: still must connect to principals
+        pluribus_logger.error(
+            'TODO: finish transitioning into running; connect to principals')
+        
+            
+    def _transition_from_uninitialized(self):
+        '''
+        When receive port stats, can start allocating virtual ports to
+        principals and installing head table.  This method does that.
+
+        Does four things:
+          0) Transition into INSTALLING_HEAD_TABLES state
+          1) Assigns each principal a set of physical tables.
+          2) Assigns each principal a set of logical ports.
+          3) Sets a head table that gotos the principal's
+             first table.
+        
+        '''
+        pluribus_logger.info(
+            'Transitioning from uninitialized ' +
+            '(allocating logical ports and installing head table)')
+
+        
+        #### PART 0: State transition
+        #### DEBUG
+        if self.state != SwitchState.UNINITIALIZED:
+            pluribus_logger.error(
+                'Unexpected state transition from uninitialized')
             assert False
         #### END DEBUG
         
-    def _init_complete(self):
-        '''
-        Install head tables and allocate logical ports to principals.
+        self.state = SwitchState.INSTALLING_HEAD_TABLES
         
-        Connect to principals and show them the switch.
-        '''
-        pluribus_logger.info('Completing initialization')
 
-        pluribus_logger.error('Still must install head table')
+        #### PART 1: Generating physical table mappings
         
-        self.state = SwitchState.RUNNING
-        pluribus_logger.error('Sill must add logic for connecting to principals')
-        # for principal in self.principals:
-        #     principal.connect()
+        # FIXME: currently allocating an equal number of tables
+        # between all principals.  No fundamental reason not to
+        # support unequal allocations.
+        
+        # subtracting 1 from numerator to account for head table.
+        num_tables_per_principal = int(math.floor(
+            (self.switch_num_tables -1) / len(self.principals)))
 
+        for i in range(0, len(self.principals)):
+            principal = self.principals[i]
+            beginning_table_id = 1 + i*num_tables_per_principal
+            ending_table_id = 1 + (i+1)*num_tables_per_principal
             
-                        
+            principal.set_physical_table_list(
+                range(beginning_table_id,ending_table_id))
+
+        #### PART 2: Assign logical ports
+        logical_port_index = 0
+        for i in range(0, len(self.principals)):
+            principal_a = self.principals[i]
+            for j in range(i+1,len(self.principals)):
+                principal_b = self.principals[j]
+                
+                logical_port_a = (
+                    self.logical_port_pair_halves[logical_port_index])
+                logical_port_b = logical_port_a.get_partner()
+                logical_port_index += 1
+
+                principal_a.add_logical_mapping(logical_port_a,principal_b)
+                principal_b.add_logical_mapping(logical_port_b,principal_a)
+
+
+        #### PART 3: Set head table for each principal
+        for principal in self.principals:
+            self._send_head_table_flow_mod(principal)
+
+        # ensure that all head table rules are installed
+        self.send_barrier()
+
+
+    def _send_head_table_flow_mod(self,principal):
+        '''
+        @param {Principal} principal
+        
+        Sends a flow mod request to head table to install rules for
+        principal.
+        '''
+        ingress_logical_port_num_list = (
+            principal.get_ingress_logical_port_num_list())
+        physical_port_num_list = list(principal.physical_port_set)
+
+        principal_first_physical_table = principal.get_first_physical_table()
+        
+        for port_num in itertools.chain(ingress_logical_port_num_list,
+                                        physical_port_num_list):
+
+            match = self.switch_dp.ofproto_parser.OFPMatch(
+                in_port=port_num)
+            instructions = [
+                OFPInstructionGotoTable(principal_first_physical_table)]
+            # priority is irrelevant because have disjoint matches
+            priority = 10
+            self.add_flow_mod(match,instructions,priority,HEAD_TABLE_ID)
+
+        # note: do not send barrier here.  rely on caller to send
+        # barrier.
+            
+            
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures,[CONFIG_DISPATCHER])
     def _recv_switch_features_response(self,ev):
         msg = ev.msg

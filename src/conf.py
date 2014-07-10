@@ -2,6 +2,7 @@ import json
 import logging
 
 CONF_FILENAME = 'pluribus.conf'
+HEAD_TABLE_ID = 0
 
 pluribus_logger = logging.getLogger('pluribus')
 

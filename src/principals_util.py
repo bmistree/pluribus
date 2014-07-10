@@ -16,6 +16,18 @@ class Principal(object):
         self.listening_ip_addr = listening_ip_addr
         self.listening_port_addr = listening_port_addr
 
+        # gets initialized when switch calls set_physical_table_list
+        # should be a list of integers... Each integer is a table id
+        # for a table that the switch can use.  Integers should be in
+        # ascending order.  Virtual table ids should be indices of
+        # list.
+        self.physical_table_list = None
+
+        # logical port linked to is *ingress* logical port to this
+        # switch.
+        self.principal_ids_to_logical_ports = {}
+        self.logical_port_nums_to_principals = {}
+        
         self.id = Principal.STATIC_PRINCIPAL_IDENTIFIER
         Principal.STATIC_PRINCIPAL_IDENTIFIER += 1
 
@@ -27,6 +39,35 @@ class Principal(object):
                 'listening_ip_addr': str(self.listening_ip_addr),
                 'listening_port': self.listening_port_addr
              })
+
+    def add_logical_mapping(self,logical_port,partnered_principal):
+        '''
+        @param {PortNamePair} logical_port
+
+        @param {Principal} partnered_principal
+        '''
+        self.principal_ids_to_logical_ports[partnered_principal.id] = (
+            logical_port)
+        self.logical_port_nums_to_principals[logical_port.port_number] = (
+            partnered_principal)
+
+    def get_ingress_logical_port_num_list(self):
+        return list(self.logical_port_nums_to_principals.keys())
+        
+    def set_physical_table_list(self,physical_table_list):
+        '''
+        @param {list} physical_table_list --- Each element is an
+        integer physical table id.
+        '''
+        self.physical_table_list = physical_table_list
+    def get_first_physical_table(self):
+        '''
+        @returns {int} --- The first physical table the principal has
+        control over.
+
+        Note: must be called after set_physical_table_list
+        '''
+        return self.physical_table_list[0]
         
     def to_json_str(self):
         '''

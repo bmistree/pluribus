@@ -95,7 +95,13 @@ class PortNameNumber(object):
     def is_physical_has_been_set(self):
         return self.is_physical is not None
     
-    
+    def get_partner(self):
+        #### DEBUG
+        if self.is_physical:
+            print 'Cannot get partner of physical port'
+            assert False
+        #### END DEBUG
+        return self.partner
     
 # loopback ports have the format:
 #   LOOPBACK_PORT_NAME_PREFIX_<int>_0
