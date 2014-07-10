@@ -4,19 +4,16 @@ import math
 import itertools
 
 from ryu.base import app_manager
-from ryu.controller import mac_to_port
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls, set_ev_handler
 from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionGotoTable
-from ryu.ofproto.ofproto_v1_3_parser import OFPEchoRequest
+from ryu.ofproto.ofproto_v1_3_parser import OFPEchoRequest, OFPEchoReply
 from ryu.ofproto.ofproto_v1_3_parser import OFPPortDescStatsRequest
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib.packet import packet
-from ryu.controller import conf_switch
 from ryu.controller import dpset
 import ryu.utils
-from ryu import cfg
+
 
 import conf
 from conf import PORT_STATS_DELAY_TIME,JSON_PRINCIPALS_TO_LOAD_FILENAME
@@ -163,7 +160,7 @@ class PluribusSwitch(app_manager.RyuApp):
 
         
         
-    @set_ev_cls(ofp_event.EventOFPEchoRequest,[MAIN_DISPATCHER])
+    @set_ev_cls(ofp_event.EventOFPEchoReply,[MAIN_DISPATCHER])
     def recv_echo_response(self, ev):
         pass
 
@@ -213,9 +210,8 @@ class PluribusSwitch(app_manager.RyuApp):
         pluribus_logger.info('Transitioning into running state')
         self.state = SwitchState.RUNNING
 
-        # FIXME: still must connect to principals
-        pluribus_logger.error(
-            'TODO: finish transitioning into running; connect to principals')
+        for principal in self.principals:
+            principal.connect()
         
             
     def _transition_from_uninitialized(self):

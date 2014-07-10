@@ -40,6 +40,13 @@ class Principal(object):
                 'listening_port': self.listening_port_addr
              })
 
+    def connect(self):
+        '''
+        Create connection with principal.
+        '''
+        pluribus_logger.error(
+            'FIXME: must finish connect method to principals')
+        
     def add_logical_mapping(self,logical_port,partnered_principal):
         '''
         @param {PortNamePair} logical_port
