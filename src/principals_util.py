@@ -2,15 +2,22 @@ import sets
 import json
 
 from conf import pluribus_logger
-
+from principal_connection import PrincipalConnection
 
 class Principal(object):
     STATIC_PRINCIPAL_IDENTIFIER = 0
     def __init__(self,physical_port_set,listening_ip_addr,
                  listening_port_addr):
         '''
-        @param {ImmutableSet} --- Elements are ints (port numbers) of
-        ports that this principal can physically control.
+        @param {ImmutableSet} physical_port_set --- Elements are ints
+        (port numbers) of ports that this principal can physically
+        control.
+
+        @param {String} listening_ip_addr --- The IP address that a
+        principal is listening on.
+
+        @param {int} listening_port_addr --- The port address that a
+        principal is listening for TCP connections on.
         '''
         self.physical_port_set = physical_port_set
         self.listening_ip_addr = listening_ip_addr
@@ -32,7 +39,7 @@ class Principal(object):
         Principal.STATIC_PRINCIPAL_IDENTIFIER += 1
 
         pluribus_logger.debug(
-            ('Loaed principal with ports %(ports)s; ip addr ' +
+            ('Loaded principal with ports %(ports)s; ip addr ' +
             '%(listening_ip_addr)s and ports %(listening_port)i.') %
             {
                 'ports': str(self.physical_port_set),
@@ -44,8 +51,14 @@ class Principal(object):
         '''
         Create connection with principal.
         '''
-        pluribus_logger.error(
-            'FIXME: must finish connect method to principals')
+        pluribus_logger.info(
+            'Connecting to principal at %s:%i' %
+            (self.listening_ip_addr,self.listening_port_addr))
+        
+        self.connection = PrincipalConnection(
+            self.listening_ip_addr,self.listening_port_addr,self)
+
+
         
     def add_logical_mapping(self,logical_port,partnered_principal):
         '''

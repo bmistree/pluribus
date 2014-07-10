@@ -6,6 +6,7 @@ import itertools
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
+from ryu.controller.handler import HANDSHAKE_DISPATCHER
 from ryu.controller.handler import set_ev_cls, set_ev_handler
 from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionGotoTable
 from ryu.ofproto.ofproto_v1_3_parser import OFPEchoRequest, OFPEchoReply
@@ -159,7 +160,6 @@ class PluribusSwitch(app_manager.RyuApp):
             'Received ofp error.  Must finish handler method.')
 
         
-        
     @set_ev_cls(ofp_event.EventOFPEchoReply,[MAIN_DISPATCHER])
     def recv_echo_response(self, ev):
         pass
@@ -212,7 +212,6 @@ class PluribusSwitch(app_manager.RyuApp):
 
         for principal in self.principals:
             principal.connect()
-        
             
     def _transition_from_uninitialized(self):
         '''
