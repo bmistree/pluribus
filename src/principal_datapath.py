@@ -7,6 +7,10 @@ from ryu.ofproto import nx_match
 from ryu.controller import ofp_event
 
 class PrincipalDatapath(Datapath):
+
+    def __init__(self, principal_connection,socket, address):
+        self.principal_connection = principal_connection
+        super(PrincipalDatapath, self).__init__(socket,address)
     
     # Low level socket handling layer
     @_deactivate
@@ -31,17 +35,7 @@ class PrincipalDatapath(Datapath):
                                          version, msg_type, msg_len, xid, buf)
                 # LOG.debug('queue msg %s cls %s', msg, msg.__class__)
                 if msg:
-                    ev = ofp_event.ofp_msg_to_ev(msg)
-                    print '\n\nGot an event to process\n\n'
-                    
-                    # self.ofp_brick.send_event_to_observers(ev, self.state)
-
-                    # dispatchers = lambda x: x.callers[ev.__class__].dispatchers
-                    # handlers = [handler for handler in
-                    #             self.ofp_brick.get_handlers(ev) if
-                    #             self.state in dispatchers(handler)]
-                    # for handler in handlers:
-                    #     handler(ev)
+                    self.principal_connection.receive_principal_message(msg)
 
                 buf = buf[required_len:]
                 required_len = ofproto_common.OFP_HEADER_SIZE

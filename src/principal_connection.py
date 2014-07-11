@@ -22,8 +22,7 @@ class PrincipalConnection(object):
         s.connect((ipaddr, tcp_port))
 
         self._principal = principal
-        # self._datapath = Datapath(s,(ipaddr,str(tcp_port)))
-        self._datapath = PrincipalDatapath(s,(ipaddr,str(tcp_port)))
+        self._datapath = PrincipalDatapath(self,s,(ipaddr,str(tcp_port)))
         self._perform_handshake()
         
 
@@ -36,12 +35,11 @@ class PrincipalConnection(object):
         t = threading.Thread(target=self._datapath.serve)
         t.start()
 
-        
-    @set_ev_cls(ofp_event.EventOFPFeaturesRequest,
-                [HANDSHAKE_DISPATCHER,CONFIG_DISPATCHER,MAIN_DISPATCHER])
-    def recv_features_request(self, ev):
-        print '\n\nReceived features request\n\n'
 
-
-
-
+    def receive_principal_message(self,msg):
+        '''
+        Receive some message from principal.
+        '''
+        print '\n\n'
+        print msg
+        print '\n\n'
