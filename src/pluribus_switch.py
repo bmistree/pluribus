@@ -259,7 +259,14 @@ class PluribusSwitch(app_manager.RyuApp):
             
             principal.set_physical_table_list(
                 range(beginning_table_id,ending_table_id))
+            
+            # FIXME: set real number of buffers on principal
+            pluribus_logger.error(
+                'FIXME: Assigning hardcoded number of ' +
+                'buffers between switches')
+            principal.set_num_buffers(5)
 
+            
         #### PART 2: Assign logical ports
         logical_port_index = 0
         for i in range(0, len(self.principals)):
@@ -321,6 +328,12 @@ class PluribusSwitch(app_manager.RyuApp):
         pluribus_logger.info(
             'Received switch features.  Num tables %i' %
             msg.n_tables)
+
+        print '\n\n'
+        print msg.auxiliary_id 
+        print msg.capabilities
+        print '\n\n'
+        
         
         if self.state == SwitchState.UNINITIALIZED:
              self._delayed_port_stats_request_outer(PORT_STATS_DELAY_TIME)

@@ -5,13 +5,18 @@ from ryu.ofproto import ofproto_protocol
 from ryu.ofproto import ofproto_v1_0
 from ryu.ofproto import nx_match
 from ryu.controller import ofp_event
+from conf import pluribus_logger
 
 class PrincipalDatapath(Datapath):
 
     def __init__(self, principal_connection,socket, address):
         self.principal_connection = principal_connection
         super(PrincipalDatapath, self).__init__(socket,address)
-    
+
+        # FIXME: hardcoded principal's datapath
+        pluribus_logger.error('FIXME: hardcoded principal datapath ids')
+        self.id = 150
+        
     # Low level socket handling layer
     @_deactivate
     def _recv_loop(self):

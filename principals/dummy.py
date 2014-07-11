@@ -55,3 +55,14 @@ class PluribusSwitch(app_manager.RyuApp):
         pluribus_logger.error(
             'Received ofp error.  Must finish handler method.')
 
+
+    @set_ev_cls(ofp_event.EventOFPSwitchFeatures,
+                [HANDSHAKE_DISPATCHER,CONFIG_DISPATCHER, MAIN_DISPATCHER])
+    def recv_switch_features_response(self,ev):
+        msg = ev.msg
+        self.switch_num_tables = msg.n_tables
+        self.switch_dp = msg.datapath
+
+        print ('\nReceived switch response with tables %i\n' %
+               msg.n_tables)
+        

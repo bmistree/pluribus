@@ -3,6 +3,8 @@ import json
 
 from conf import pluribus_logger
 from principal_connection import PrincipalConnection
+from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures
+
 
 class Principal(object):
     STATIC_PRINCIPAL_IDENTIFIER = 0
@@ -29,7 +31,8 @@ class Principal(object):
         # ascending order.  Virtual table ids should be indices of
         # list.
         self.physical_table_list = None
-
+        self.num_buffers = None
+        
         # logical port linked to is *ingress* logical port to this
         # switch.
         self.principal_ids_to_logical_ports = {}
@@ -47,6 +50,13 @@ class Principal(object):
                 'listening_port': self.listening_port_addr
              })
 
+    def set_num_buffers(self, num_buffers):
+        '''
+        @param {int} num_buffers --- Number of buffers this principal
+        can use.
+        '''
+        self.num_buffers = num_buffers
+                
     def connect(self):
         '''
         Create connection with principal.
@@ -57,7 +67,6 @@ class Principal(object):
         
         self.connection = PrincipalConnection(
             self.listening_ip_addr,self.listening_port_addr,self)
-
 
         
     def add_logical_mapping(self,logical_port,partnered_principal):
@@ -107,9 +116,24 @@ class Principal(object):
         '''
         @param {extended_v3_parser.OFPFeaturesRequest} msg
         '''
-        print '\nReceived a features request mesage on datapath\n'
+        pluribus_logger.debug('Responding to features request')
+        num_tables = len(self.physical_table_list)
 
-    
+        print '\n\n'
+        print self.connection.datapath.id
+        print '\n\n'
+        
+        switch_features_msg = OFPSwitchFeatures(
+            self.connection.datapath,
+            self.connection.datapath.id,
+            self.num_buffers,
+            num_tables,
+            0,71)
+        
+        self.connection.datapath.send_msg(
+            switch_features_msg)
+
+        
 def save_principals_to_json_file(principal_list,filename):
     '''
     @param {list} principal_list --- Each element is a principal
