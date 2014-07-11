@@ -1,5 +1,7 @@
 import socket
 import threading
+import sys
+import os
 
 from ryu.lib import rpc
 from ryu.ofproto import ofproto_v1_3, ofproto_v1_3_parser
@@ -15,24 +17,32 @@ from ryu.controller.handler import set_ev_cls, set_ev_handler
 
 from conf import pluribus_logger
 
+
+sys.path.append(
+    os.path.join(
+        os.path.dirname( os.path.abspath(__file__)),
+        '..','parser'))
+import extended_v3_parser
+
+
 class PrincipalConnection(object):
 
     def __init__(self,ipaddr,tcp_port,principal):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ipaddr, tcp_port))
 
-        self._principal = principal
-        self._datapath = PrincipalDatapath(self,s,(ipaddr,str(tcp_port)))
-        self._perform_handshake()
+        self.principal = principal
+        self.datapath = PrincipalDatapath(self,s,(ipaddr,str(tcp_port)))
+        self.perform_handshake()
         
 
-    def _perform_handshake(self):
+    def perform_handshake(self):
         '''
         Sends ofp hello to other side
         '''
         pluribus_logger.debug(
-            'Sending handshake to principal %i' % self._principal.id)
-        t = threading.Thread(target=self._datapath.serve)
+            'Sending handshake to principal %i' % self.principal.id)
+        t = threading.Thread(target=self.datapath.serve)
         t.start()
 
 
@@ -40,6 +50,9 @@ class PrincipalConnection(object):
         '''
         Receive some message from principal.
         '''
-        print '\n\n'
-        print msg
-        print '\n\n'
+        if isinstance(msg, extended_v3_parser.OFPFeaturesRequest):
+            self.principal.handle_features_request(msg)
+        else:
+            pluribus_logger.error(
+                'Received unknown message from principal of type' +
+                str(type(msg)))

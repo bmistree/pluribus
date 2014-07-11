@@ -102,6 +102,14 @@ class Principal(object):
             }
         return json.dumps(to_serialize,indent=4)
 
+    #### Requests from principal to switch
+    def handle_features_request(self,msg):
+        '''
+        @param {extended_v3_parser.OFPFeaturesRequest} msg
+        '''
+        print '\nReceived a features request mesage on datapath\n'
+
+    
 def save_principals_to_json_file(principal_list,filename):
     '''
     @param {list} principal_list --- Each element is a principal
