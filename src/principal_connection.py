@@ -12,9 +12,7 @@ from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import HANDSHAKE_DISPATCHER
 from ryu.controller.handler import set_ev_cls, set_ev_handler
 
-
 from conf import pluribus_logger
-    
 
 class PrincipalConnection(object):
 
@@ -33,11 +31,11 @@ class PrincipalConnection(object):
         '''
         pluribus_logger.debug(
             'Sending handshake to principal %i' % self._principal.id)
-
-        t = threading.Thread(self._datapath.serve)
+        t = threading.Thread(target=self._datapath.serve)
         t.start()
 
-    @set_ev_cls(ofp_event.OFPFeaturesRequest,
+        
+    @set_ev_cls(ofp_event.EventOFPFeaturesRequest,
                 [HANDSHAKE_DISPATCHER,CONFIG_DISPATCHER,MAIN_DISPATCHER])
     def recv_features_request(self, ev):
         print '\n\nReceived features request\n\n'
