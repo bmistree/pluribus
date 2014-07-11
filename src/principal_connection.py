@@ -4,7 +4,8 @@ import threading
 from ryu.lib import rpc
 from ryu.ofproto import ofproto_v1_3, ofproto_v1_3_parser
 from ryu.ofproto import ofproto_protocol
-from ryu.controller.controller import Datapath
+# from ryu.controller.controller import Datapath
+from principal_datapath import PrincipalDatapath
 from ryu.lib import hub
 
 from ryu.controller import ofp_event
@@ -21,7 +22,8 @@ class PrincipalConnection(object):
         s.connect((ipaddr, tcp_port))
 
         self._principal = principal
-        self._datapath = Datapath(s,(ipaddr,str(tcp_port)))
+        # self._datapath = Datapath(s,(ipaddr,str(tcp_port)))
+        self._datapath = PrincipalDatapath(s,(ipaddr,str(tcp_port)))
         self._perform_handshake()
         
 
