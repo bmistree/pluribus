@@ -332,6 +332,7 @@ class PluribusSwitch(app_manager.RyuApp):
         print '\n\n'
         print msg.auxiliary_id 
         print msg.capabilities
+        print msg._reserved
         print '\n\n'
         
         

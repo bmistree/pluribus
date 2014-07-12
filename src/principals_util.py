@@ -4,7 +4,7 @@ import json
 from conf import pluribus_logger
 from principal_connection import PrincipalConnection
 from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures
-from extended_v3_parser import OfpSwitchFeatures as PluribusSwitchFeatures
+from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
 
 
 class Principal(object):

@@ -7,6 +7,7 @@ from ryu.controller.ofp_event import _create_ofp_msg_ev_class
 from ryu.ofproto.ofproto_v1_3_parser import OFPFeaturesRequest as FeaturesRequestClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures as FeaturesReplyClass
 
+import struct
 
 @_register_parser
 @_set_msg_type(ofproto.OFPT_FEATURES_REQUEST)
@@ -26,7 +27,6 @@ _create_ofp_msg_ev_class(OFPFeaturesRequest)
 
 
 
-@_register_parser
 @_set_msg_type(ofproto.OFPT_FEATURES_REPLY)
 class OFPSwitchFeatures(FeaturesReplyClass):
     '''    
@@ -37,12 +37,22 @@ class OFPSwitchFeatures(FeaturesReplyClass):
     
     '''
     def serialize(self):
-        print '\n\nMust override seriaize for OFPSwitchFeatures\n\n'
-        # buf = bytearray()
-        # msg_pack_into(ofproto.OFP_EXPERIMENTER_MULTIPART_HEADER_PACK_STR,
-        #               buf, 0,
-        #               self.experimenter, self.exp_type)
-        # return buf + self.data
-        return None
-
+        print '\nSerializing\n'
+        
+        fmt = ofproto.OFP_HEADER_PACK_STR
+        version = ofproto.OFP_VERSION
+        msg_type = ofproto.OFPT_FEATURES_REPLY
+        msg_len = ofproto.OFP_SWITCH_FEATURES_SIZE
+        xid = 5
+        
+        buf = struct.pack(fmt, version, msg_type, msg_len, xid)
+        buf += struct.pack(
+            ofproto.OFP_SWITCH_FEATURES_PACK_STR,
+            self.datapath_id,
+            self.n_buffers,
+            self.n_tables,
+            self.auxiliary_id,
+            self.capabilities,
+            ofproto.OFP_HEADER_SIZE)
+        self.buf = buf
 
