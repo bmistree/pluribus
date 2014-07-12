@@ -68,7 +68,6 @@ class OFPSwitchFeatures(FeaturesReplyClass):
 class OFPGetConfigRequest(GetConfigRequestClass):
     @classmethod
     def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
-        print '\n\nTrying to parse config request\n\n'
         msg = super(OPFGetConfigRequest, cls).parser(
             datapath, version, msg_type,
             msg_len, xid, buf)
@@ -83,7 +82,6 @@ class OFPSetConfig(SetConfigClass):
     
     @classmethod
     def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
-        print '\n\nTrying to parse set config request\n\n'
         msg = super(OFPSetConfig, cls).parser(
             datapath, version, msg_type,
             msg_len, xid, buf)
@@ -102,20 +100,14 @@ _create_ofp_msg_ev_class(OFPSetConfig)
 class OFPDescStatsRequest(DescStatsRequestClass):
     @classmethod
     def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
-        print '\n\nTrying to parse desc stats request\n\n'
         msg = super(OFPDescStatsRequest, cls).parser(
             datapath, version, msg_type,
             msg_len, xid, buf)
-        print '\nparsed desc stats request\n'
         
         (msg.type,msg.flags) = struct.unpack_from(
             ofproto.OFP_MULTIPART_REQUEST_PACK_STR,
             msg.buf,ofproto.OFP_HEADER_SIZE)
 
-        print '\n\n'
-        print msg.flags
-        print msg.type
-        print '\n\n'
         return msg
 
 _create_ofp_msg_ev_class(OFPDescStatsRequest)
@@ -144,6 +136,8 @@ class OFPDescStatsReply(DescStatsReplyClass):
             0 # no flags???
             )
 
+        # FIXME: responding with hard-coded description statistics
+        
         # body of reply contains desc_stats struct
         mfr_desc = 'mfr_desc'.ljust(256)
         hw_desc = 'hw_desc'.ljust(256)
