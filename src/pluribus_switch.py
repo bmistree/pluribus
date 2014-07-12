@@ -329,13 +329,6 @@ class PluribusSwitch(app_manager.RyuApp):
             'Received switch features.  Num tables %i' %
             msg.n_tables)
 
-        print '\n\n'
-        print msg.auxiliary_id 
-        print msg.capabilities
-        print msg._reserved
-        print '\n\n'
-        
-        
         if self.state == SwitchState.UNINITIALIZED:
              self._delayed_port_stats_request_outer(PORT_STATS_DELAY_TIME)
         #### DEBUG

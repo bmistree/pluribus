@@ -26,7 +26,6 @@ class OFPFeaturesRequest(FeaturesRequestClass):
     '''
     @classmethod
     def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
-        print '\n\nTrying to parse\n\n'
         msg = super(OFPFeaturesRequest, cls).parser(
             datapath, version, msg_type,
             msg_len, xid, buf)

@@ -5,7 +5,8 @@ Dummy principal just listens for connections on target port.
 Important to not use default port: middleware layer is using target
 port.
 '''
-
+import threading
+import time
 from ryu.base import app_manager
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -40,6 +41,44 @@ class PluribusSwitch(app_manager.RyuApp):
                 [HANDSHAKE_DISPATCHER, CONFIG_DISPATCHER, MAIN_DISPATCHER])
     def recv_desc_stats(self, ev):
         print '\n\nReceived desc stats\n\n'
+        t = threading.Thread(
+            target=self.send_delayed_flow_mod,args=(ev.msg.datapath,))
+        t.start()
+        
+    def send_delayed_flow_mod(self,datapath):
+        time.sleep(5)
+        print '\nSending flow mod\n'
+
+        table_id = 0
+        priority = 30
+        match = datapath.ofproto_parser.OFPMatch(
+            in_port=30)
+        instructions = [
+            datapath.ofproto_parser.OFPInstructionGotoTable(1)]
+        
+        flow_mod_msg = datapath.ofproto_parser.OFPFlowMod(
+            datapath, # datapath
+            0, # cookie
+            0, # cookie_mask
+
+            table_id,
+                        
+            datapath.ofproto.OFPFC_ADD, # command
+            0, # idle_timeout
+            0, # hard_timeout
+
+            priority, # priority
+
+            datapath.ofproto.OFP_NO_BUFFER, # buffer_id
+            0, # out_port
+            0, # out_group
+            0, # flags
+            
+            match,
+            instructions)
+        datapath.send_msg(flow_mod_msg)
+
+
         
     @set_ev_cls(ofp_event.EventOFPErrorMsg,
                 [HANDSHAKE_DISPATCHER,CONFIG_DISPATCHER, MAIN_DISPATCHER])
