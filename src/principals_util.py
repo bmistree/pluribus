@@ -5,7 +5,7 @@ from conf import pluribus_logger
 from principal_connection import PrincipalConnection
 from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures
 from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
-
+from extended_v3_parser import OFPDescStatsReply as PluribusDescStatsReply
 
 class Principal(object):
     STATIC_PRINCIPAL_IDENTIFIER = 0
@@ -135,6 +135,16 @@ class Principal(object):
         self.connection.datapath.send_msg(
             switch_features_msg)
 
+    def handle_desc_stats_request(self,msg):
+        '''
+        @param {OFPDescStatsRequest} msg
+
+        Sends back an OFPDescStatsReply
+        '''
+        msg = PluribusDescStatsReply(self.connection.datapath)
+        msg.serialize()
+        self.connection.datapath.send_msg(msg)
+        
         
 def save_principals_to_json_file(principal_list,filename):
     '''

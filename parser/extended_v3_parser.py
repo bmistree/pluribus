@@ -11,6 +11,7 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPSetConfig as SetConfigClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPMultipartRequest as MultipartRequestClass
 
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStatsRequest as DescStatsRequestClass
+from ryu.ofproto.ofproto_v1_3_parser import OFPDescStatsReply as DescStatsReplyClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPPortStatsRequest as PortStatsRequestClass
 
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStats, OFPPortStats
@@ -110,20 +111,53 @@ class OFPDescStatsRequest(DescStatsRequestClass):
         (msg.type,msg.flags) = struct.unpack_from(
             ofproto.OFP_MULTIPART_REQUEST_PACK_STR,
             msg.buf,ofproto.OFP_HEADER_SIZE)
+
+        print '\n\n'
+        print msg.flags
+        print msg.type
+        print '\n\n'
         return msg
 
 _create_ofp_msg_ev_class(OFPDescStatsRequest)
 
-# @_register_parser
-# @_set_msg_type(ofproto.OFPT_MULTIPART_REQUEST)
-# class OFPPortStatsRequest(PortStatsRequestClass):
-#     @classmethod
-#     def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
-#         print '\nParsing port stats request\n'
-#         (msg_type,msg_flags,msg_port_no) = struct.unpack_from(
-#             ofproto.OFP_MULTIPART_REQUEST_PACK_STR,
-#             buf,ofproto.OFP_MULTIPART_REQUEST_SIZE)
-#         print '\nDone parsing port stats request\n'
-#         return PortStatsRequestClass(datapath,msg_flags,msg_port_no)
 
-# _create_ofp_msg_ev_class(OFPPortStatsRequest)
+# @_set_msg_type(ofproto.OFPT_DESC_STATS_REPLY)
+class OFPDescStatsReply(DescStatsReplyClass):
+    '''    
+    Default switch features essentially has a blank serialize method.
+    This is because ryu does not actually generate this message
+    itself.  Adding these methods so that when serialize, it works
+    correctly.
+    '''
+    def serialize(self):
+        # generate ofp header last
+
+        # multipart reply struct
+        self.buf = struct.pack(
+            '!HH4x', # network order, short uint, short uint, 4B
+                     # padding
+            ofproto.OFPMP_DESC,
+            0 # no flags???
+            )
+
+        # body of reply contains desc_stats struct
+        mfr_desc = 'mfr_desc'.ljust(256)
+        hw_desc = 'hw_desc'.ljust(256)
+        sw_desc = 'sw_desc'.ljust(256)
+        serial_num = 'serial_num'.ljust(32)
+        dp_desc = 'dp_desc'.ljust(256)
+
+        self.buf += (mfr_desc +
+                     hw_desc +
+                     sw_desc +
+                     serial_num +
+                     dp_desc)
+
+        # now that know length, generate the ofp header at top of packet
+        self.buf +=  struct.pack(
+            ofproto.OFP_HEADER_PACK_STR,
+            ofproto.OFP_VERSION,
+            ofproto.OFPT_MULTIPART_REPLY,
+            len(self.buf) + ofproto.OFP_HEADER_SIZE,
+            0 # xid
+            )
