@@ -8,6 +8,7 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPFeaturesRequest as FeaturesReques
 from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures as FeaturesReplyClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPGetConfigRequest as GetConfigRequestClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPSetConfig as SetConfigClass
+from ryu.ofproto.ofproto_v1_3_parser import OFPMultipartRequest as MultipartRequestClass
 
 import struct
 
@@ -88,3 +89,28 @@ class OFPSetConfig(SetConfigClass):
         return msg
     
 _create_ofp_msg_ev_class(OFPSetConfig)
+
+
+@_register_parser
+@_set_msg_type(ofproto.OFPT_MULTIPART_REQUEST)
+class OFPMultipartRequest(MultipartRequestClass):
+
+    # setting defaults on initializers so that calling super parser
+    # works correctly.
+    def __init__(self,datapath=None,flags=None):
+        super(OFPMultipartRequest,self).__init__(datapath,flags)
+    
+    @classmethod
+    def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
+        print '\n\nTrying to parse multipart request \n\n'
+        msg = super(MultipartRequestClass, cls).parser(
+            datapath, version, msg_type,
+            msg_len, xid, buf)
+        print '\nparsed multipart request\n'
+        
+        (msg.type,msg.flags) = struct.unpack_from(
+            ofproto.OFP_MULTIPART_REQUEST_PACK_STR,
+            msg.buf,ofproto.OFP_HEADER_SIZE)
+        return msg
+        
+_create_ofp_msg_ev_class(OFPMultipartRequest)
