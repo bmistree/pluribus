@@ -36,6 +36,10 @@ class PluribusSwitch(app_manager.RyuApp):
     def recv_echo_response(self, ev):
         print '\n\nReceived echo request\n\n'
 
+    @set_ev_cls(ofp_event.EventOFPDescStatsReply,
+                [HANDSHAKE_DISPATCHER, CONFIG_DISPATCHER, MAIN_DISPATCHER])
+    def recv_desc_stats(self, ev):
+        print '\n\nReceived desc stats\n\n'
         
     @set_ev_cls(ofp_event.EventOFPErrorMsg,
                 [HANDSHAKE_DISPATCHER,CONFIG_DISPATCHER, MAIN_DISPATCHER])
