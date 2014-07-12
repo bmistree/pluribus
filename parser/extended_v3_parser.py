@@ -6,6 +6,8 @@ from ryu.controller.ofp_event import _create_ofp_msg_ev_class
 
 from ryu.ofproto.ofproto_v1_3_parser import OFPFeaturesRequest as FeaturesRequestClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures as FeaturesReplyClass
+from ryu.ofproto.ofproto_v1_3_parser import OFPGetConfigRequest as GetConfigRequestClass
+from ryu.ofproto.ofproto_v1_3_parser import OFPSetConfig as SetConfigClass
 
 import struct
 
@@ -23,7 +25,7 @@ class OFPFeaturesRequest(FeaturesRequestClass):
             datapath, version, msg_type,
             msg_len, xid, buf)
         return msg
-_create_ofp_msg_ev_class(OFPFeaturesRequest)    
+_create_ofp_msg_ev_class(OFPFeaturesRequest)
 
 
 
@@ -54,3 +56,35 @@ class OFPSwitchFeatures(FeaturesReplyClass):
             ofproto.OFP_HEADER_SIZE)
         self.buf = buf
 
+
+@_register_parser
+@_set_msg_type(ofproto.OFPT_GET_CONFIG_REQUEST)
+class OFPGetConfigRequest(GetConfigRequestClass):
+    @classmethod
+    def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
+        print '\n\nTrying to parse config request\n\n'
+        msg = super(OPFGetConfigRequest, cls).parser(
+            datapath, version, msg_type,
+            msg_len, xid, buf)
+        return msg
+
+_create_ofp_msg_ev_class(OFPGetConfigRequest)
+
+
+@_register_parser
+@_set_msg_type(ofproto.OFPT_SET_CONFIG)
+class OFPSetConfig(SetConfigClass):
+    
+    @classmethod
+    def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
+        print '\n\nTrying to parse set config request\n\n'
+        msg = super(OFPSetConfig, cls).parser(
+            datapath, version, msg_type,
+            msg_len, xid, buf)
+        (msg.flags, msg.miss_send_len) = struct.unpack_from(
+            ofproto.OFP_EXPERIMENTER_HEADER_PACK_STR, msg.buf,
+            ofproto.OFP_HEADER_SIZE)
+        
+        return msg
+    
+_create_ofp_msg_ev_class(OFPSetConfig)
