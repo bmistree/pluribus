@@ -141,7 +141,8 @@ class Principal(object):
 
         Sends back an OFPDescStatsReply
         '''
-        msg = PluribusDescStatsReply(self.connection.datapath)
+        msg = PluribusDescStatsReply(
+            msg.xid,self.connection.datapath)
         msg.serialize()
         self.connection.datapath.send_msg(msg)
         

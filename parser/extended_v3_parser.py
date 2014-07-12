@@ -129,6 +129,10 @@ class OFPDescStatsReply(DescStatsReplyClass):
     itself.  Adding these methods so that when serialize, it works
     correctly.
     '''
+    def __init__(self,request_xid,datapath,type_=None,**kwargs):
+        self.request_xid = request_xid
+        super(OFPDescStatsReply,self).__init__(datapath,type_,**kwargs)
+    
     def serialize(self):
         # generate ofp header last
 
@@ -159,5 +163,4 @@ class OFPDescStatsReply(DescStatsReplyClass):
             ofproto.OFP_VERSION,
             ofproto.OFPT_MULTIPART_REPLY,
             len(self.buf) + ofproto.OFP_HEADER_SIZE,
-            0 # xid
-            )
+            int(self.request_xid))
