@@ -37,8 +37,6 @@ class OFPSwitchFeatures(FeaturesReplyClass):
     
     '''
     def serialize(self):
-        print '\nSerializing\n'
-        
         fmt = ofproto.OFP_HEADER_PACK_STR
         version = ofproto.OFP_VERSION
         msg_type = ofproto.OFPT_FEATURES_REPLY

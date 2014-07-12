@@ -120,16 +120,17 @@ class Principal(object):
         pluribus_logger.debug('Responding to features request')
         num_tables = len(self.physical_table_list)
 
-        print '\n\n'
-        print self.connection.datapath.id
-        print '\n\n'
-
+        # FIXME: hardcoding features and capabilities for now
+        capabilities = 71
+        auxiliary_id = 0
+        
         switch_features_msg = PluribusSwitchFeatures(
             self.connection.datapath,
             self.connection.datapath.id,
             self.num_buffers,
             num_tables,
-            0,71)
+            auxiliary_id,
+            capabilities)
         
         self.connection.datapath.send_msg(
             switch_features_msg)
