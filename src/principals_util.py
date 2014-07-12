@@ -4,6 +4,7 @@ import json
 from conf import pluribus_logger
 from principal_connection import PrincipalConnection
 from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures
+from extended_v3_parser import OfpSwitchFeatures as PluribusSwitchFeatures
 
 
 class Principal(object):
@@ -122,8 +123,8 @@ class Principal(object):
         print '\n\n'
         print self.connection.datapath.id
         print '\n\n'
-        
-        switch_features_msg = OFPSwitchFeatures(
+
+        switch_features_msg = PluribusSwitchFeatures(
             self.connection.datapath,
             self.connection.datapath.id,
             self.num_buffers,
