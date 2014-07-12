@@ -1,6 +1,6 @@
 from ryu.ofproto import ofproto_v1_3 as ofproto
 from ryu.ofproto.ofproto_v1_3_parser import _register_parser
-from ryu.ofproto.ofproto_v1_3_parser import _set_msg_type
+from ryu.ofproto.ofproto_v1_3_parser import _set_msg_type, _set_stats_type
 from ryu.ofproto.ofproto_parser import StringifyMixin, MsgBase, msg_pack_into, msg_str_attr
 from ryu.controller.ofp_event import _create_ofp_msg_ev_class
 
@@ -10,6 +10,10 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPGetConfigRequest as GetConfigRequ
 from ryu.ofproto.ofproto_v1_3_parser import OFPSetConfig as SetConfigClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPMultipartRequest as MultipartRequestClass
 
+from ryu.ofproto.ofproto_v1_3_parser import OFPDescStatsRequest as DescStatsRequestClass
+from ryu.ofproto.ofproto_v1_3_parser import OFPPortStatsRequest as PortStatsRequestClass
+
+from ryu.ofproto.ofproto_v1_3_parser import OFPDescStats, OFPPortStats
 import struct
 
 @_register_parser
@@ -92,25 +96,34 @@ _create_ofp_msg_ev_class(OFPSetConfig)
 
 
 @_register_parser
+@_set_stats_type(ofproto.OFPMP_DESC, OFPDescStats)
 @_set_msg_type(ofproto.OFPT_MULTIPART_REQUEST)
-class OFPMultipartRequest(MultipartRequestClass):
-
-    # setting defaults on initializers so that calling super parser
-    # works correctly.
-    def __init__(self,datapath=None,flags=None):
-        super(OFPMultipartRequest,self).__init__(datapath,flags)
-    
+class OFPDescStatsRequest(DescStatsRequestClass):
     @classmethod
     def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
-        print '\n\nTrying to parse multipart request \n\n'
-        msg = super(MultipartRequestClass, cls).parser(
+        print '\n\nTrying to parse desc stats request\n\n'
+        msg = super(OFPDescStatsRequest, cls).parser(
             datapath, version, msg_type,
             msg_len, xid, buf)
-        print '\nparsed multipart request\n'
+        print '\nparsed desc stats request\n'
         
         (msg.type,msg.flags) = struct.unpack_from(
             ofproto.OFP_MULTIPART_REQUEST_PACK_STR,
             msg.buf,ofproto.OFP_HEADER_SIZE)
         return msg
-        
-_create_ofp_msg_ev_class(OFPMultipartRequest)
+
+_create_ofp_msg_ev_class(OFPDescStatsRequest)
+
+# @_register_parser
+# @_set_msg_type(ofproto.OFPT_MULTIPART_REQUEST)
+# class OFPPortStatsRequest(PortStatsRequestClass):
+#     @classmethod
+#     def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
+#         print '\nParsing port stats request\n'
+#         (msg_type,msg_flags,msg_port_no) = struct.unpack_from(
+#             ofproto.OFP_MULTIPART_REQUEST_PACK_STR,
+#             buf,ofproto.OFP_MULTIPART_REQUEST_SIZE)
+#         print '\nDone parsing port stats request\n'
+#         return PortStatsRequestClass(datapath,msg_flags,msg_port_no)
+
+# _create_ofp_msg_ev_class(OFPPortStatsRequest)
