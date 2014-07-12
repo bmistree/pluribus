@@ -158,9 +158,9 @@ class OFPDescStatsReply(DescStatsReplyClass):
                      dp_desc)
 
         # now that know length, generate the ofp header at top of packet
-        self.buf +=  struct.pack(
+        self.buf =  struct.pack(
             ofproto.OFP_HEADER_PACK_STR,
             ofproto.OFP_VERSION,
             ofproto.OFPT_MULTIPART_REPLY,
             len(self.buf) + ofproto.OFP_HEADER_SIZE,
-            int(self.request_xid))
+            int(self.request_xid)) + self.buf
