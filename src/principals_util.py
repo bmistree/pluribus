@@ -158,10 +158,12 @@ class Principal(object):
         Rewrites rules not to goto incorrect tables.
         Rewrites rules to use different ports.
         '''
+        # FIXME: still need to catch exceptions and write back errors.
         msg.rewrite_table_ids(self.physical_table_list)
+        msg.rewrite_gotos(self.physical_table_list)
+        
         pluribus_logger.error(
-            'When handling flowmod, still need to re-write ' +
-            'gotos and ports')
+            'When handling flowmod, still need to re-write ports.')
 
         pluribus_logger.info('Forwarding translated flow mod to switch')
         self.pluribus_switch.send_msg(msg)
@@ -192,7 +194,8 @@ def load_principals_from_json_file(filename,pluribus_switch):
     json_list = json.loads(file_contents)
 
     return map(
-        lambda json_dict: principal_from_json_dict(json_dict,pluribus_switch),
+        lambda json_dict:
+            principal_from_json_dict(json_dict,pluribus_switch),
         json_list)
     
         

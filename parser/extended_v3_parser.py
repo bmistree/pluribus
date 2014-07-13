@@ -1,3 +1,7 @@
+import struct
+import logging
+pluribus_logger = logging.getLogger('pluribus')
+
 from ryu.ofproto import ofproto_v1_3 as ofproto
 from ryu.ofproto.ofproto_v1_3_parser import _register_parser
 from ryu.ofproto.ofproto_v1_3_parser import _set_msg_type, _set_stats_type
@@ -15,11 +19,15 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPDescStatsReply as DescStatsReplyC
 from ryu.ofproto.ofproto_v1_3_parser import OFPPortStatsRequest as PortStatsRequestClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPFlowMod as FlowModClass
 
+from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionGotoTable
 from ryu.ofproto.ofproto_v1_3_parser import OFPMatch, OFPInstruction
 import ryu.utils
 
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStats, OFPPortStats
-import struct
+
+from translation_exceptions import InvalidTableWriteException
+from translation_exceptions import InvalidGotoTableException
+
 
 @_register_parser
 @_set_msg_type(ofproto.OFPT_FEATURES_REQUEST)
@@ -209,8 +217,9 @@ class OFPFlowMod(FlowModClass):
         A couple of notes.  For ofp delete alls, need to translate
         into many messages sending to each individual table.
 
-        @throws --- If trying to write to a table that isn't a valid
-        virtual id, then need to send an error back.
+        @throws {InvalidTableWriteException} --- If trying to write to
+        a table that isn't a valid virtual id, then need to send an
+        error back.
         '''
         if self.table_id == ofproto.OFPTT_ALL:
             # FIXME: delete messages can apply to all tables, need to
@@ -222,8 +231,40 @@ class OFPFlowMod(FlowModClass):
         if self.table_id >= len(table_id_list):
             raise InvalidTableWriteException()
 
-        self.table_id = table_id_list[self.table_id]
+        old_table_id = self.table_id
+        new_table_id = table_id_list[old_table_id]
+        pluribus_logger.info(
+            'For flowmod, rewriting old table %i to new table %i.' %
+            (old_table_id,new_table_id))
         
-    
+        self.table_id = new_table_id
+
+    def rewrite_gotos(self,table_id_list):
+        '''
+        @param {list} table_id_list --- Each element is an integer.
+        Index of table_id_list is the virtual table id; value is
+        physical table id.
+
+        Look through listed actions and translate gotos
+
+        @throws {InvalidGotoTableException} --- If trying to goto a
+        table that this principal does not control, then throw an
+        exception.
+        '''
+        for instruction in self.instructions:
+            if isinstance(instruction,OFPInstructionGotoTable):
+                
+                if instruction.table_id >= len(table_id_list):
+                    raise InvalidGotoTableException()
+
+                old_table_id = instruction.table_id
+                new_table_id = table_id_list[old_table_id]
+                
+                pluribus_logger.info(
+                    'For instruction, rewrite old table %i to new table %i.' %
+                    (old_table_id,new_table_id))
+                instruction.table_id = new_table_id
+
+        
     
 _create_ofp_msg_ev_class(OFPFlowMod)
