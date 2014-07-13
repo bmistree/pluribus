@@ -53,8 +53,15 @@ class PluribusSwitch(app_manager.RyuApp):
         priority = 30
         match = datapath.ofproto_parser.OFPMatch(
             in_port=30)
+
+        # forward all matches out of ports
+        actions = [datapath.ofproto_parser.OFPActionOutput(1)]
+        instruction_actions = datapath.ofproto_parser.OFPInstructionActions(
+            datapath.ofproto.OFPIT_WRITE_ACTIONS,actions)
         instructions = [
-            datapath.ofproto_parser.OFPInstructionGotoTable(1)]
+            # datapath.ofproto_parser.OFPInstructionGotoTable(1),
+            instruction_actions
+            ]
         
         flow_mod_msg = datapath.ofproto_parser.OFPFlowMod(
             datapath, # datapath
