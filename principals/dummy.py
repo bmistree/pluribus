@@ -70,7 +70,7 @@ class PluribusSwitch(app_manager.RyuApp):
             priority, # priority
 
             datapath.ofproto.OFP_NO_BUFFER, # buffer_id
-            0, # out_port
+            23, # out_port
             0, # out_group
             0, # flags
             

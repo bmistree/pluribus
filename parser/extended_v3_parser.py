@@ -15,6 +15,7 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPDescStatsReply as DescStatsReplyC
 from ryu.ofproto.ofproto_v1_3_parser import OFPPortStatsRequest as PortStatsRequestClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPFlowMod as FlowModClass
 
+from ryu.ofproto.ofproto_v1_3_parser import OFPMatch
 
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStats, OFPPortStats
 import struct
@@ -177,6 +178,16 @@ class OFPFlowMod(FlowModClass):
             ofproto.OFP_FLOW_MOD_PACK_STR0,
             msg.buf,ofproto.OFP_HEADER_SIZE)
 
+        #### DECODE MATCHES ####
+        # how far from the top of the message the match is located.
+        match_offset = (ofproto.OFP_FLOW_MOD_SIZE -
+                  ofproto.OFP_MATCH_SIZE)
+
+        msg.match = OFPMatch.parser(msg.buf,match_offset)
+        print '\n\n'
+        print msg.match.to_jsondict()
+        print '\n\n'
+        
         return msg
     
 _create_ofp_msg_ev_class(OFPFlowMod)
