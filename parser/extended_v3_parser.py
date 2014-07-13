@@ -13,6 +13,8 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPMultipartRequest as MultipartRequ
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStatsRequest as DescStatsRequestClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStatsReply as DescStatsReplyClass
 from ryu.ofproto.ofproto_v1_3_parser import OFPPortStatsRequest as PortStatsRequestClass
+from ryu.ofproto.ofproto_v1_3_parser import OFPFlowMod as FlowModClass
+
 
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStats, OFPPortStats
 import struct
@@ -112,7 +114,6 @@ class OFPDescStatsRequest(DescStatsRequestClass):
 _create_ofp_msg_ev_class(OFPDescStatsRequest)
 
 
-# @_set_msg_type(ofproto.OFPT_DESC_STATS_REPLY)
 class OFPDescStatsReply(DescStatsReplyClass):
     '''    
     Default switch features essentially has a blank serialize method.
@@ -157,3 +158,25 @@ class OFPDescStatsReply(DescStatsReplyClass):
             ofproto.OFPT_MULTIPART_REPLY,
             len(self.buf) + ofproto.OFP_HEADER_SIZE,
             int(self.request_xid)) + self.buf
+
+
+@_register_parser
+@_set_msg_type(ofproto.OFPT_FLOW_MOD)
+class OFPFlowMod(FlowModClass):
+    @classmethod
+    def parser(cls, datapath, version, msg_type, msg_len, xid, buf):
+        msg = super(OFPFlowMod, cls).parser(
+            datapath, version, msg_type,
+            msg_len, xid, buf)
+        
+        (msg.cookie, msg.cookie_mask,
+         msg.table_id, msg.command,
+         msg.idle_timeout, msg.hard_timeout,
+         msg.priority, msg.buffer_id,
+         msg.out_port, msg.out_group, msg.flags) = struct.unpack_from(
+            ofproto.OFP_FLOW_MOD_PACK_STR0,
+            msg.buf,ofproto.OFP_HEADER_SIZE)
+
+        return msg
+    
+_create_ofp_msg_ev_class(OFPFlowMod)

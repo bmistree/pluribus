@@ -58,7 +58,7 @@ class PluribusSwitch(app_manager.RyuApp):
         
         flow_mod_msg = datapath.ofproto_parser.OFPFlowMod(
             datapath, # datapath
-            0, # cookie
+            20, # cookie
             0, # cookie_mask
 
             table_id,
