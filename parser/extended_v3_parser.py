@@ -24,9 +24,12 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPMatch, OFPInstruction
 import ryu.utils
 
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStats, OFPPortStats
+from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionActions
+from ryu.ofproto.ofproto_v1_3_parser import OFPActionOutput
 
 from translation_exceptions import InvalidTableWriteException
 from translation_exceptions import InvalidGotoTableException
+from translation_exceptions import InvalidOutputAction
 
 
 @_register_parser
@@ -265,6 +268,34 @@ class OFPFlowMod(FlowModClass):
                     (old_table_id,new_table_id))
                 instruction.table_id = new_table_id
 
+    def rewrite_action_ports(
+        self,physical_port_set,egress_logical_port_nums_to_princiapls):
+        '''
+        @param {ImmuatableSet} physical_port_set --- The physical
+        ports that this message can address.
+
+        @param {dict} egress_logical_port_nums_to_principals --- Keys
+        are logical egress port numbers of this switch.  Values are
+        principals.
+
+        @throws {InvalidOutputAction} --- If trying to forward out a
+        port that are not allowed to.
         
-    
+        When receive a flow mod with an action, check that the action
+        forwards out of a port in physical_port_set or that sends to a
+        logical port in egress set.
+        
+        '''
+        for instruction in self.instructions:
+            if isinstance(instruction, OFPInstructionActions):
+                instruction_actions = instruction
+                for action in instruction_actions.actions:
+                    if isinstance(action, OFPActionOutput):
+                        output_port = action.port
+
+                        if output_port not in egress_logical_port_nums_to_principals:
+                            if output_port not in physical_port_set:
+                                raise InvalidOutputAction()
+
+                
 _create_ofp_msg_ev_class(OFPFlowMod)

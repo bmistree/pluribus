@@ -11,3 +11,7 @@ class InvalidGotoTableException (Exception):
     Flowmod instruction tries to goto an invalid table.
     '''
 
+class InvalidOutputAction (Exception):
+    '''
+    Flowmod instruction tries to write out of an incorrect port.
+    '''

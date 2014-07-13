@@ -37,10 +37,11 @@ class Principal(object):
         self.physical_table_list = None
         self.num_buffers = None
         
+        self.principal_ids_to_logical_ports = {}
         # logical port linked to is *ingress* logical port to this
         # switch.
-        self.principal_ids_to_logical_ports = {}
-        self.logical_port_nums_to_principals = {}
+        self.ingress_logical_port_nums_to_principals = {}
+        self.egress_logical_port_nums_to_principals = {}
         
         self.id = Principal.STATIC_PRINCIPAL_IDENTIFIER
         Principal.STATIC_PRINCIPAL_IDENTIFIER += 1
@@ -79,13 +80,19 @@ class Principal(object):
 
         @param {Principal} partnered_principal
         '''
+        partner_port = logical_port.partner
+        
         self.principal_ids_to_logical_ports[partnered_principal.id] = (
             logical_port)
-        self.logical_port_nums_to_principals[logical_port.port_number] = (
+        self.ingress_logical_port_nums_to_principals[logical_port.port_number] = (
             partnered_principal)
+        self.egress_logical_port_nums_to_principals[parnter_port.port_number] = (
+            partnered_principal)
+        
 
     def get_ingress_logical_port_num_list(self):
-        return list(self.logical_port_nums_to_principals.keys())
+        return list(
+            self.ingress_logical_port_nums_to_principals.keys())
         
     def set_physical_table_list(self,physical_table_list):
         '''
@@ -161,9 +168,9 @@ class Principal(object):
         # FIXME: still need to catch exceptions and write back errors.
         msg.rewrite_table_ids(self.physical_table_list)
         msg.rewrite_gotos(self.physical_table_list)
-        
-        pluribus_logger.error(
-            'When handling flowmod, still need to re-write ports.')
+        msg.rewrite_action_ports(
+            self.physical_port_set,
+            self.egress_logical_port_nums_to_principals)
 
         pluribus_logger.info('Forwarding translated flow mod to switch')
         self.pluribus_switch.send_msg(msg)
