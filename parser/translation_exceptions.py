@@ -1,0 +1,4 @@
+
+class InvalidTableWriteException (Exception):
+    pass
+
