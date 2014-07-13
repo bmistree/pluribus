@@ -9,9 +9,11 @@ from extended_v3_parser import OFPDescStatsReply as PluribusDescStatsReply
 
 class Principal(object):
     STATIC_PRINCIPAL_IDENTIFIER = 0
-    def __init__(self,physical_port_set,listening_ip_addr,
+    def __init__(self,pluribus_switch,physical_port_set,listening_ip_addr,
                  listening_port_addr):
         '''
+        @param {PluribusSwitch} pluribus_switch
+        
         @param {ImmutableSet} physical_port_set --- Elements are ints
         (port numbers) of ports that this principal can physically
         control.
@@ -22,6 +24,7 @@ class Principal(object):
         @param {int} listening_port_addr --- The port address that a
         principal is listening for TCP connections on.
         '''
+        self.pluribus_switch = pluribus_switch
         self.physical_port_set = physical_port_set
         self.listening_ip_addr = listening_ip_addr
         self.listening_port_addr = listening_port_addr
@@ -145,7 +148,24 @@ class Principal(object):
             msg.xid,self.connection.datapath)
         msg.serialize()
         self.connection.datapath.send_msg(msg)
-        
+
+
+    def handle_flow_mod(self,msg):
+        '''
+        @param {extended_v3_parser.OFPFlowMod} msg
+
+        Rewrites the flow mod to only apply to target tables.
+        Rewrites rules not to goto incorrect tables.
+        Rewrites rules to use different ports.
+        '''
+        msg.rewrite_table_ids(self.physical_table_list)
+        pluribus_logger.error(
+            'When handling flowmod, still need to re-write ' +
+            'gotos and ports')
+
+        pluribus_logger.info('Forwarding translated flow mod to switch')
+        self.pluribus_switch.send_msg(msg)
+
         
 def save_principals_to_json_file(principal_list,filename):
     '''
@@ -160,8 +180,11 @@ def save_principals_to_json_file(principal_list,filename):
         fd.write(output_str)
     
 
-def load_principals_from_json_file(filename):
+def load_principals_from_json_file(filename,pluribus_switch):
     '''
+    @param {string} filename
+    @param {PluribusSwitch} pluribus_switch
+    
     @return {list} --- Each element is a principal
     '''
     with open(filename,'r') as fd:
@@ -169,27 +192,30 @@ def load_principals_from_json_file(filename):
     json_list = json.loads(file_contents)
 
     return map(
-        lambda json_dict: principal_from_json_dict(json_dict),
+        lambda json_dict: principal_from_json_dict(json_dict,pluribus_switch),
         json_list)
     
         
-def principal_from_json(json_str):
+def principal_from_json(json_str,pluribus_switch):
     '''
     @param {String} json_str
 
     @returns {Principal}
     '''
     principal_dict = json.loads(json_str)
-    return principal_from_json_dict(principal_dict)
+    return principal_from_json_dict(principal_dict,pluribus_switch)
 
-def principal_from_json_dict(json_dict):
+def principal_from_json_dict(json_dict,pluribus_switch):
     '''
     @param {dict} json_dict --- @see Principal.to_json_str for format
     of dict.
 
+    @param {PluribusSwitch} pluribus_switch 
+    
     @returns {Principal}
     '''
     return Principal(
+        pluribus_switch,
         sets.ImmutableSet(json_dict['physical_ports']),
         json_dict['listening_ip_addr'],
         int(json_dict['listening_port_addr']))

@@ -54,6 +54,8 @@ class PrincipalConnection(object):
             self.principal.handle_features_request(msg)
         elif isinstance(msg,extended_v3_parser.OFPDescStatsRequest):
             self.principal.handle_desc_stats_request(msg)
+        elif isinstance(msg,extended_v3_parser.OFPFlowMod):
+            self.principal.handle_flow_mod(msg)
         else:
             pluribus_logger.error(
                 'Received unknown message from principal of type' +

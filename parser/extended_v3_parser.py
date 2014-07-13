@@ -199,5 +199,31 @@ class OFPFlowMod(FlowModClass):
             inst_length -= inst.len
 
         return msg
+
+    def rewrite_table_ids(self,table_id_list):
+        '''
+        @param {list} table_id_list --- Each element is an integer.
+        Index of table_id_list is the virtual table id; value is
+        physical table id.
+
+        A couple of notes.  For ofp delete alls, need to translate
+        into many messages sending to each individual table.
+
+        @throws --- If trying to write to a table that isn't a valid
+        virtual id, then need to send an error back.
+        '''
+        if self.table_id == ofproto.OFPTT_ALL:
+            # FIXME: delete messages can apply to all tables, need to
+            # translate into multiple deletes.
+            pluribus_logger.error(
+                'Still need to re-write messages targetting all tables')
+            return
+
+        if self.table_id >= len(table_id_list):
+            raise InvalidTableWriteException()
+
+        self.table_id = table_id_list[self.table_id]
+        
+    
     
 _create_ofp_msg_ev_class(OFPFlowMod)

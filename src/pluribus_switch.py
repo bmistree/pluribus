@@ -53,7 +53,7 @@ class PluribusSwitch(app_manager.RyuApp):
         self.principals = []
         if JSON_PRINCIPALS_TO_LOAD_FILENAME is not None:
             self.principals = load_principals_from_json_file(
-                JSON_PRINCIPALS_TO_LOAD_FILENAME)
+                JSON_PRINCIPALS_TO_LOAD_FILENAME,self)
             
         self.state = SwitchState.UNINITIALIZED
         # all of these fields get loaded before transitioning int run state.
@@ -119,8 +119,14 @@ class PluribusSwitch(app_manager.RyuApp):
             match,
             instructions)
 
-        self.switch_dp.send_msg(flow_mod_msg)
+        self.send_msg(flow_mod_msg)
 
+    def send_msg(self,msg_to_send):
+        '''
+        @param {Subclass of MsgBase} msg_to_send
+        '''
+        self.switch_dp.send_msg(msg_to_send)        
+        
     @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)                
     def recv_barrier_response(self,ev):
         if self.state == SwitchState.INSTALLING_HEAD_TABLES:
