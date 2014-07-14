@@ -17,14 +17,26 @@ class ChainedTablePluribusSwitch(PluribusSwitch):
         super(ChainedTablePluribusSwitch, self).__init__(
             ChainedTablePrincipal,*args, **kwargs)
     
-    def _init_recv_port_stats_response_config(self,ev):
+        
+    def _transition_from_uninitialized(self):
         '''
-        Get a list of ports back
-        '''
-        # call parent class
-        super(ChainedTablePluribusSwitch,
-              self)._init_recv_port_stats_response_config(ev)
+        When receive port stats, can start allocating virtual ports to
+        principals and installing head table.  This method does that.
 
+        Does four things:
+          0) Transition into INSTALLING_HEAD_TABLES state
+          1) Assigns each principal a set of early and late tables
+          2) Tell each principal about virtual port numbers to send to
+          other principals.
+          3) Sets a head table that gotos the principal's
+             first table.
+        '''
+        #### PART 0
+        self.state = SwitchState.INSTALLING_HEAD_TABLES
+        
+
+        #### PART 1
+        
         # check to ensure that have enough tables to support number of
         # principals.
         num_principals = len(self.principals)
@@ -60,6 +72,7 @@ class ChainedTablePluribusSwitch(PluribusSwitch):
             # update tables for principals
             principal.add_table_ids(early_tables, late_tables)
 
+        #### PART 2
 
         # find highest physical port number and add one to get first
         # virtual port number
@@ -74,25 +87,14 @@ class ChainedTablePluribusSwitch(PluribusSwitch):
             principal.add_egress_logical_port_num_to_table_id(
                 self.principals,first_available_virtual_port_number)
 
-        print '\n\nFinished adding for principals\n\n'
+        #### PART 3: Set head table for each principal
+        for principal in self.principals:
+            self._send_head_table_flow_mod(principal)
 
-        
-    def _transition_from_uninitialized(self):
-        '''
-        When receive port stats, can start allocating virtual ports to
-        principals and installing head table.  This method does that.
+        # ensure that all head table rules are installed
+        self.send_barrier()
 
-        Does four things:
-          0) Transition into INSTALLING_HEAD_TABLES state
-          1) Assigns each principal a set of physical tables.
-          2) Assigns each principal a set of logical ports.
-          3) Sets a head table that gotos the principal's
-             first table.
-        
-        '''
-        # FIXME: must fill in transition_from_uninitialized
-        pluribus_logger.error(
-            'FIXME: must fill in transition_from_uninitialized')
+
         
     def _send_head_table_flow_mod(self,principal):
         '''
