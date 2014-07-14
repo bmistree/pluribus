@@ -1,5 +1,6 @@
 from principals_util import Principal
 from conf import pluribus_logger
+from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
 
 class ChainedTablePrincipal(Principal):
 
@@ -63,10 +64,25 @@ class ChainedTablePrincipal(Principal):
         '''
         @param {extended_v3_parser.OFPFeaturesRequest} msg
         '''
-        # FIXME: must handle feature request for chained tables
-        pluribus_logger.error(
-            'FIXME: must handle feature request for chained tables')
+        pluribus_logger.debug('Responding to features request')
+        num_tables = len(self.early_table_ids)
 
+        # FIXME: hardcoding features and capabilities for now
+        capabilities = 71
+        auxiliary_id = 0
+        
+        switch_features_msg = PluribusSwitchFeatures(
+            self.connection.datapath,
+            self.connection.datapath.id,
+            self.num_buffers,
+            num_tables,
+            auxiliary_id,
+            capabilities)
+        
+        self.connection.datapath.send_msg(
+            switch_features_msg)
+
+        
     def handle_desc_stats_request(self,msg):
         '''
         @param {OFPDescStatsRequest} msg
@@ -76,7 +92,6 @@ class ChainedTablePrincipal(Principal):
         # FIXME: must handle desc stats request for chained tables
         pluribus_logger.error(
             'FIXME: must handle desc stats request for chained tables')
-
 
     def handle_flow_mod(self,msg):
         '''

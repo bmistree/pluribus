@@ -1,5 +1,3 @@
-from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures
-
 from principals_util import Principal
 from conf import pluribus_logger
 

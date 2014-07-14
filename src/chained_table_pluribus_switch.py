@@ -73,6 +73,13 @@ class ChainedTablePluribusSwitch(PluribusSwitch):
             # update tables for principals
             principal.add_table_ids(early_tables, late_tables)
 
+            # FIXME: set real number of buffers on principal
+            pluribus_logger.error(
+                'FIXME: Assigning hardcoded number of ' +
+                'buffers between switches')
+            principal.set_num_buffers(5)
+
+            
         #### PART 2
 
         # find highest physical port number and add one to get first
