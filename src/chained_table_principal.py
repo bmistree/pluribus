@@ -45,14 +45,19 @@ class ChainedTablePrincipal(Principal):
             if principal.id == self.id:
                 continue
 
+            first_late_tbl_phys_id = (
+                principal.get_first_late_table_physical_id())
             self.egress_logical_port_num_to_table_id[
-                virtual_port_start_id] = principal.get_first_late_table_id()
+                virtual_port_start_id] = first_late_tbl_phys_id
             virtual_port_start_id += 1
 
-    def get_first_late_table_id(self):
-        return self.late_talbe_ids[0]
+    def get_first_late_table_physical_id(self):
+        return self.late_table_ids[0]
+    
+    def get_first_early_table_physical_id(self):
+        return self.early_table_ids[0]
 
-
+    
     #### Requests from principal to switch
     def handle_features_request(self,msg):
         '''
