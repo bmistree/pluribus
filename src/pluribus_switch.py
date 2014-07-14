@@ -18,7 +18,6 @@ import conf
 from conf import PORT_STATS_DELAY_TIME,JSON_PRINCIPALS_TO_LOAD_FILENAME
 from conf import pluribus_logger
 
-from logical_port_principal import LogicalPortPrincipal
 from principals_util import load_principals_from_json_file
 
 from port_util import PortNameNumber
@@ -45,14 +44,17 @@ class PluribusSwitch(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
     _CONTEXTS = {'dpset': dpset.DPSet}
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, principals_cls, *args, **kwargs):
+        '''
+        @param {Principals class object} principals_cls --- Class to
+        generate principals.
+        '''
         super(PluribusSwitch, self).__init__(*args, **kwargs)
 
         self.principals = []
         if JSON_PRINCIPALS_TO_LOAD_FILENAME is not None:
             self.principals = load_principals_from_json_file(
-                LogicalPortPrincipal,
-                JSON_PRINCIPALS_TO_LOAD_FILENAME,self)
+                principals_cls,JSON_PRINCIPALS_TO_LOAD_FILENAME,self)
             
         self.state = SwitchState.UNINITIALIZED
         # all of these fields get loaded before transitioning int run state.

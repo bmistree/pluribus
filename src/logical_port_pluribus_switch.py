@@ -1,9 +1,9 @@
 import math
 import itertools
 
-
 from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionGotoTable
 
+from logical_port_principal import LogicalPortPrincipal
 from port_util import set_logical_physical
 from port_util import num_principals_from_num_logical_port_pairs
 from pluribus_switch import PluribusSwitch, SwitchState
@@ -13,7 +13,8 @@ from conf import pluribus_logger,HEAD_TABLE_ID
 class LogicalPortPluribusSwitch(PluribusSwitch):
     
     def __init__(self, *args, **kwargs):
-        super(LogicalPortPluribusSwitch, self).__init__(*args, **kwargs)
+        super(LogicalPortPluribusSwitch, self).__init__(
+            LogicalPortPrincipal,*args, **kwargs)
         self.logical_port_pair_halves = None
         self.num_principals_can_support = None
     
