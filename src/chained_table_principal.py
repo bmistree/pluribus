@@ -5,6 +5,7 @@ from conf import pluribus_logger
 from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
 
 from ryu.ofproto import ofproto_v1_3
+from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionGotoTable
 from translation_exceptions import InvalidTableWriteException
 from translation_exceptions import InvalidGotoTableException
 from translation_exceptions import InvalidOutputAction
@@ -131,10 +132,25 @@ def produce_early_late_flow_mods(chained_principal,msg):
         duplicate if:
             * Match does not include a physical port
             * Match does not include a logical port
-
+            
     PART 1:
-        More to do
+        For output actions, check that output to a valid port.  For
+        physical outputs, leave action the same.  For virtual outputs,
+        jump to appropriate table or cause packet in at controller.
+
+    PART 2:
+        Do translation for translation actions
+        
     '''
+
+    # FIXME: must add and zero metadata for explicit matches on
+    # virtual ports... should probably use unique virtual port ids
+    # amongst principals.
+    pluribus_logger.error(
+        '\nFIXME: for rules that only target a virtual port, ' +
+        'must add metadata during goto and replace match ' +
+        'with match on metadata.  Then, in rule, zero metadata.\n')
+    
     early_table_flow_mod_msg = None
     late_table_flow_mod_msg = None
 
@@ -171,10 +187,81 @@ def produce_early_late_flow_mods(chained_principal,msg):
 
 
     #### PART 1:
+    if early_table_flow_mod_msg is not None:
+        rewrite_port_output_actions(
+            chained_principal,early_table_flow_mod_msg,True)
+    if late_table_flow_mod_msg is not None:
+        rewrite_port_output_actions(
+            chained_principal,late_table_flow_mod_msg,False)
+
     pluribus_logger.error('Must finish producing early and late flow tables')
     
     return early_table_flow_mod_msg, late_table_flow_mod_msg
         
+
+def rewrite_port_output_actions(
+    chained_principal,flow_mod_msg,is_early_table):
+    '''
+    @param {ChainedTablePrincipal} chained_principal
+    @param {extended_v3_parser.OFPFlowMod} flow_mod_msg
+    @param {boolean} is_early_table
+
+    For any physical port that chained_principal is allowed to write
+    directly to, just forward out message.
+
+    For output actions, check that output to a valid port.  For
+    physical outputs, leave action the same.  For virtual outputs,
+    jump to appropriate table or cause packet in msg.
+    '''
+    
+    goto_instr_to_add = None
+    for instruction in flow_mod_msg.instructions:
+        if isinstance(instruction, OFPInstructionActions):
+            instruction_actions = instruction
+
+            action_indices_to_remove = []
+            for action_index in range(0,len(instruction_actions.actions)):
+                action = instruction_actions.actions[action_index]
+
+                if isinstance(action, OFPActionOutput):
+                    output_port = action.port
+
+                    if output_port not in physical_port_set:
+                        if output_port not in egress_logical_port_nums_to_principals:
+                            raise InvalidOutputAction()
+                        else:
+                            # forwarding to a logical port
+                            if is_early_table:
+                                # substitute action with goto to
+                                # different table.
+                                action_indices_to_remove.append(action_index)
+                                
+                                receiver_principal = (
+                                    egress_logical_port_nums_to_principals[output_port])
+                                
+                                goto_table_id = (
+                                    receiver_principal.get_first_late_table_physical_id())
+                                goto_instr_to_add = OFPInstructionGotoTable(goto_table_id)
+                            else:
+                                # FIXME: still need to handle case
+                                # where virtual port is supposed to
+                                # forward out of virtual port
+                                pluribus_logger.error(
+                                    '\nFIXME: still must handle case of ' +
+                                    'virtual port\'s forwarding out of ' +
+                                    'virtual port...ends up requiring ' +
+                                    'going back to controller.\n')
+
+
+            # now remove all actions that had been forwarding to
+            # logical ports.  Note: remove in backwards order to
+            # maintain indices when deleting.
+            for action_index in reverse(action_indices_to_remove):
+                del instruction_actions.actions[action_index]
+                
+    # append goto action if necessary
+    if goto_instr_to_add is not None:
+        flow_mod_msg.instructions.append(goto_instr_to_add)
 
 def duplicate_flow_mod(flow_mod_msg):
     return pickle.loads(pickle.dumps(flow_mod_msg))
