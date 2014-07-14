@@ -3,6 +3,7 @@ import json
 
 from conf import pluribus_logger
 from principal_connection import PrincipalConnection
+from extended_v3_parser import OFPDescStatsReply as PluribusDescStatsReply
 
 
 class Principal(object):
@@ -80,7 +81,6 @@ class Principal(object):
         '''
         # should be overridden
         assert False
-    
 
     def handle_desc_stats_request(self,msg):
         '''
@@ -88,8 +88,10 @@ class Principal(object):
 
         Sends back an OFPDescStatsReply
         '''
-        # should be overridden
-        assert False
+        msg = PluribusDescStatsReply(
+            msg.xid,self.connection.datapath)
+        msg.serialize()
+        self.connection.datapath.send_msg(msg)
 
     def handle_flow_mod(self,msg):
         '''

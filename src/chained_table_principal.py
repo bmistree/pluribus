@@ -83,16 +83,6 @@ class ChainedTablePrincipal(Principal):
             switch_features_msg)
 
         
-    def handle_desc_stats_request(self,msg):
-        '''
-        @param {OFPDescStatsRequest} msg
-
-        Sends back an OFPDescStatsReply
-        '''
-        # FIXME: must handle desc stats request for chained tables
-        pluribus_logger.error(
-            'FIXME: must handle desc stats request for chained tables')
-
     def handle_flow_mod(self,msg):
         '''
         @param {extended_v3_parser.OFPFlowMod} msg

@@ -2,8 +2,6 @@ from principals_util import Principal
 from conf import pluribus_logger
 
 from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
-from extended_v3_parser import OFPDescStatsReply as PluribusDescStatsReply
-
 
 class LogicalPortPrincipal(Principal):
 
@@ -87,18 +85,6 @@ class LogicalPortPrincipal(Principal):
         
         self.connection.datapath.send_msg(
             switch_features_msg)
-
-    def handle_desc_stats_request(self,msg):
-        '''
-        @param {OFPDescStatsRequest} msg
-
-        Sends back an OFPDescStatsReply
-        '''
-        msg = PluribusDescStatsReply(
-            msg.xid,self.connection.datapath)
-        msg.serialize()
-        self.connection.datapath.send_msg(msg)
-
 
     def handle_flow_mod(self,msg):
         '''
