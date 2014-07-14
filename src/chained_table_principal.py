@@ -86,6 +86,10 @@ class ChainedTablePrincipal(Principal):
     def handle_flow_mod(self,msg):
         '''
         @param {extended_v3_parser.OFPFlowMod} msg
+
+        When we receive an addition flow mod, translate the tables
+        that it is affecting to physical tables.
+        
         '''
         # FIXME: must handle flow mod request for chained tables
         pluribus_logger.error(

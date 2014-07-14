@@ -24,13 +24,6 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPMatch, OFPInstruction
 import ryu.utils
 
 from ryu.ofproto.ofproto_v1_3_parser import OFPDescStats, OFPPortStats
-from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionActions
-from ryu.ofproto.ofproto_v1_3_parser import OFPActionOutput
-
-from translation_exceptions import InvalidTableWriteException
-from translation_exceptions import InvalidGotoTableException
-from translation_exceptions import InvalidOutputAction
-
 
 @_register_parser
 @_set_msg_type(ofproto.OFPT_FEATURES_REQUEST)
@@ -210,92 +203,6 @@ class OFPFlowMod(FlowModClass):
             inst_length -= inst.len
 
         return msg
-
-    def rewrite_table_ids(self,table_id_list):
-        '''
-        @param {list} table_id_list --- Each element is an integer.
-        Index of table_id_list is the virtual table id; value is
-        physical table id.
-
-        A couple of notes.  For ofp delete alls, need to translate
-        into many messages sending to each individual table.
-
-        @throws {InvalidTableWriteException} --- If trying to write to
-        a table that isn't a valid virtual id, then need to send an
-        error back.
-        '''
-        if self.table_id == ofproto.OFPTT_ALL:
-            # FIXME: delete messages can apply to all tables, need to
-            # translate into multiple deletes.
-            pluribus_logger.error(
-                'Still need to re-write messages targetting all tables')
-            return
-
-        if self.table_id >= len(table_id_list):
-            raise InvalidTableWriteException()
-
-        old_table_id = self.table_id
-        new_table_id = table_id_list[old_table_id]
-        pluribus_logger.info(
-            'For flowmod, rewriting old table %i to new table %i.' %
-            (old_table_id,new_table_id))
-        
-        self.table_id = new_table_id
-
-    def rewrite_gotos(self,table_id_list):
-        '''
-        @param {list} table_id_list --- Each element is an integer.
-        Index of table_id_list is the virtual table id; value is
-        physical table id.
-
-        Look through listed actions and translate gotos
-
-        @throws {InvalidGotoTableException} --- If trying to goto a
-        table that this principal does not control, then throw an
-        exception.
-        '''
-        for instruction in self.instructions:
-            if isinstance(instruction,OFPInstructionGotoTable):
-                
-                if instruction.table_id >= len(table_id_list):
-                    raise InvalidGotoTableException()
-
-                old_table_id = instruction.table_id
-                new_table_id = table_id_list[old_table_id]
-                
-                pluribus_logger.info(
-                    'For instruction, rewrite old table %i to new table %i.' %
-                    (old_table_id,new_table_id))
-                instruction.table_id = new_table_id
-
-    def rewrite_action_ports(
-        self,physical_port_set,egress_logical_port_nums_to_princiapls):
-        '''
-        @param {ImmuatableSet} physical_port_set --- The physical
-        ports that this message can address.
-
-        @param {dict} egress_logical_port_nums_to_principals --- Keys
-        are logical egress port numbers of this switch.  Values are
-        principals.
-
-        @throws {InvalidOutputAction} --- If trying to forward out a
-        port that are not allowed to.
-        
-        When receive a flow mod with an action, check that the action
-        forwards out of a port in physical_port_set or that sends to a
-        logical port in egress set.
-        
-        '''
-        for instruction in self.instructions:
-            if isinstance(instruction, OFPInstructionActions):
-                instruction_actions = instruction
-                for action in instruction_actions.actions:
-                    if isinstance(action, OFPActionOutput):
-                        output_port = action.port
-
-                        if output_port not in egress_logical_port_nums_to_principals:
-                            if output_port not in physical_port_set:
-                                raise InvalidOutputAction()
 
                 
 _create_ofp_msg_ev_class(OFPFlowMod)

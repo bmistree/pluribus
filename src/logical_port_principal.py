@@ -1,7 +1,16 @@
 from principals_util import Principal
 from conf import pluribus_logger
 
+from ryu.ofproto import ofproto_v1_3 as ofproto
+from ryu.ofproto.ofproto_v1_3_parser import OFPInstructionActions
+from ryu.ofproto.ofproto_v1_3_parser import OFPActionOutput
+
 from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
+
+from translation_exceptions import InvalidTableWriteException
+from translation_exceptions import InvalidGotoTableException
+from translation_exceptions import InvalidOutputAction
+
 
 class LogicalPortPrincipal(Principal):
 
@@ -95,12 +104,102 @@ class LogicalPortPrincipal(Principal):
         Rewrites rules to use different ports.
         '''
         # FIXME: still need to catch exceptions and write back errors.
-        msg.rewrite_table_ids(self.physical_table_list)
-        msg.rewrite_gotos(self.physical_table_list)
-        msg.rewrite_action_ports(
-            self.physical_port_set,
+        flow_mod_rewrite_table_ids(msg,self.physical_table_list)
+        flow_mod_rewrite_gotos(msg,self.physical_table_list)
+        flow_mod_rewrite_action_ports(
+            msg,self.physical_port_set,
             self.egress_logical_port_nums_to_principals)
 
         pluribus_logger.info('Forwarding translated flow mod to switch')
         self.pluribus_switch.send_msg(msg)
 
+
+
+
+def flow_mod_rewrite_table_ids(flow_mod,table_id_list):
+    '''
+    @param {list} table_id_list --- Each element is an integer.
+    Index of table_id_list is the virtual table id; value is
+    physical table id.
+
+    A couple of notes.  For ofp delete alls, need to translate
+    into many messages sending to each individual table.
+
+    @throws {InvalidTableWriteException} --- If trying to write to
+    a table that isn't a valid virtual id, then need to send an
+    error back.
+    '''
+    if flow_mod.table_id == ofproto.OFPTT_ALL:
+        # FIXME: delete messages can apply to all tables, need to
+        # translate into multiple deletes.
+        pluribus_logger.error(
+            'Still need to re-write messages targetting all tables')
+        return
+
+    if flow_mod.table_id >= len(table_id_list):
+        raise InvalidTableWriteException()
+
+    old_table_id = flow_mod.table_id
+    new_table_id = table_id_list[old_table_id]
+    pluribus_logger.info(
+        'For flowmod, rewriting old table %i to new table %i.' %
+        (old_table_id,new_table_id))
+
+    flow_mod.table_id = new_table_id
+
+def flow_mod_rewrite_gotos(flow_mod,table_id_list):
+    '''
+    @param {list} table_id_list --- Each element is an integer.
+    Index of table_id_list is the virtual table id; value is
+    physical table id.
+
+    Look through listed actions and translate gotos
+
+    @throws {InvalidGotoTableException} --- If trying to goto a
+    table that this principal does not control, then throw an
+    exception.
+    '''
+    for instruction in flow_mod.instructions:
+        if isinstance(instruction,OFPInstructionGotoTable):
+
+            if instruction.table_id >= len(table_id_list):
+                raise InvalidGotoTableException()
+
+            old_table_id = instruction.table_id
+            new_table_id = table_id_list[old_table_id]
+
+            pluribus_logger.info(
+                'For instruction, rewrite old table %i to new table %i.' %
+                (old_table_id,new_table_id))
+            instruction.table_id = new_table_id
+
+def flow_mod_rewrite_action_ports(
+    flow_mod,physical_port_set,egress_logical_port_nums_to_princiapls):
+    '''
+    @param {ImmuatableSet} physical_port_set --- The physical
+    ports that this message can address.
+
+    @param {dict} egress_logical_port_nums_to_principals --- Keys
+    are logical egress port numbers of this switch.  Values are
+    principals.
+
+    @throws {InvalidOutputAction} --- If trying to forward out a
+    port that are not allowed to.
+
+    When receive a flow mod with an action, check that the action
+    forwards out of a port in physical_port_set or that sends to a
+    logical port in egress set.
+
+    '''
+    for instruction in flow_mod.instructions:
+        if isinstance(instruction, OFPInstructionActions):
+            instruction_actions = instruction
+            for action in instruction_actions.actions:
+                if isinstance(action, OFPActionOutput):
+                    output_port = action.port
+
+                    if output_port not in egress_logical_port_nums_to_principals:
+                        if output_port not in physical_port_set:
+                            raise InvalidOutputAction()
+
+        
