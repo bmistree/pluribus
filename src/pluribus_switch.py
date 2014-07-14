@@ -19,6 +19,8 @@ import ryu.utils
 import conf
 from conf import PORT_STATS_DELAY_TIME,JSON_PRINCIPALS_TO_LOAD_FILENAME
 from conf import pluribus_logger,HEAD_TABLE_ID
+
+from logical_port_principal import LogicalPortPrincipal
 from principals_util import load_principals_from_json_file
 
 from port_util import set_logical_physical
@@ -53,6 +55,7 @@ class PluribusSwitch(app_manager.RyuApp):
         self.principals = []
         if JSON_PRINCIPALS_TO_LOAD_FILENAME is not None:
             self.principals = load_principals_from_json_file(
+                LogicalPortPrincipal,
                 JSON_PRINCIPALS_TO_LOAD_FILENAME,self)
             
         self.state = SwitchState.UNINITIALIZED

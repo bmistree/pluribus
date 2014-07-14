@@ -3,9 +3,7 @@ import json
 
 from conf import pluribus_logger
 from principal_connection import PrincipalConnection
-from ryu.ofproto.ofproto_v1_3_parser import OFPSwitchFeatures
-from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
-from extended_v3_parser import OFPDescStatsReply as PluribusDescStatsReply
+
 
 class Principal(object):
     STATIC_PRINCIPAL_IDENTIFIER = 0
@@ -29,20 +27,6 @@ class Principal(object):
         self.listening_ip_addr = listening_ip_addr
         self.listening_port_addr = listening_port_addr
 
-        # gets initialized when switch calls set_physical_table_list
-        # should be a list of integers... Each integer is a table id
-        # for a table that the switch can use.  Integers should be in
-        # ascending order.  Virtual table ids should be indices of
-        # list.
-        self.physical_table_list = None
-        self.num_buffers = None
-        
-        self.principal_ids_to_logical_ports = {}
-        # logical port linked to is *ingress* logical port to this
-        # switch.
-        self.ingress_logical_port_nums_to_principals = {}
-        self.egress_logical_port_nums_to_principals = {}
-        
         self.id = Principal.STATIC_PRINCIPAL_IDENTIFIER
         Principal.STATIC_PRINCIPAL_IDENTIFIER += 1
 
@@ -54,6 +38,9 @@ class Principal(object):
                 'listening_ip_addr': str(self.listening_ip_addr),
                 'listening_port': self.listening_port_addr
              })
+        
+        self.num_buffers = None
+        
 
     def set_num_buffers(self, num_buffers):
         '''
@@ -72,42 +59,6 @@ class Principal(object):
         
         self.connection = PrincipalConnection(
             self.listening_ip_addr,self.listening_port_addr,self)
-
-        
-    def add_logical_mapping(self,logical_port,partnered_principal):
-        '''
-        @param {PortNamePair} logical_port
-
-        @param {Principal} partnered_principal
-        '''
-        partner_port = logical_port.partner
-        
-        self.principal_ids_to_logical_ports[partnered_principal.id] = (
-            logical_port)
-        self.ingress_logical_port_nums_to_principals[logical_port.port_number] = (
-            partnered_principal)
-        self.egress_logical_port_nums_to_principals[parnter_port.port_number] = (
-            partnered_principal)
-        
-
-    def get_ingress_logical_port_num_list(self):
-        return list(
-            self.ingress_logical_port_nums_to_principals.keys())
-        
-    def set_physical_table_list(self,physical_table_list):
-        '''
-        @param {list} physical_table_list --- Each element is an
-        integer physical table id.
-        '''
-        self.physical_table_list = physical_table_list
-    def get_first_physical_table(self):
-        '''
-        @returns {int} --- The first physical table the principal has
-        control over.
-
-        Note: must be called after set_physical_table_list
-        '''
-        return self.physical_table_list[0]
         
     def to_json_str(self):
         '''
@@ -121,29 +72,15 @@ class Principal(object):
             'listening_port_addr': self.listening_port_addr
             }
         return json.dumps(to_serialize,indent=4)
-
+    
     #### Requests from principal to switch
     def handle_features_request(self,msg):
         '''
         @param {extended_v3_parser.OFPFeaturesRequest} msg
         '''
-        pluribus_logger.debug('Responding to features request')
-        num_tables = len(self.physical_table_list)
-
-        # FIXME: hardcoding features and capabilities for now
-        capabilities = 71
-        auxiliary_id = 0
-        
-        switch_features_msg = PluribusSwitchFeatures(
-            self.connection.datapath,
-            self.connection.datapath.id,
-            self.num_buffers,
-            num_tables,
-            auxiliary_id,
-            capabilities)
-        
-        self.connection.datapath.send_msg(
-            switch_features_msg)
+        # should be overridden
+        assert False
+    
 
     def handle_desc_stats_request(self,msg):
         '''
@@ -151,11 +88,8 @@ class Principal(object):
 
         Sends back an OFPDescStatsReply
         '''
-        msg = PluribusDescStatsReply(
-            msg.xid,self.connection.datapath)
-        msg.serialize()
-        self.connection.datapath.send_msg(msg)
-
+        # should be overridden
+        assert False
 
     def handle_flow_mod(self,msg):
         '''
@@ -165,16 +99,8 @@ class Principal(object):
         Rewrites rules not to goto incorrect tables.
         Rewrites rules to use different ports.
         '''
-        # FIXME: still need to catch exceptions and write back errors.
-        msg.rewrite_table_ids(self.physical_table_list)
-        msg.rewrite_gotos(self.physical_table_list)
-        msg.rewrite_action_ports(
-            self.physical_port_set,
-            self.egress_logical_port_nums_to_principals)
-
-        pluribus_logger.info('Forwarding translated flow mod to switch')
-        self.pluribus_switch.send_msg(msg)
-
+        # should be overridden
+        assert False
         
 def save_principals_to_json_file(principal_list,filename):
     '''
@@ -189,7 +115,7 @@ def save_principals_to_json_file(principal_list,filename):
         fd.write(output_str)
     
 
-def load_principals_from_json_file(filename,pluribus_switch):
+def load_principals_from_json_file(cls,filename,pluribus_switch):
     '''
     @param {string} filename
     @param {PluribusSwitch} pluribus_switch
@@ -202,20 +128,20 @@ def load_principals_from_json_file(filename,pluribus_switch):
 
     return map(
         lambda json_dict:
-            principal_from_json_dict(json_dict,pluribus_switch),
+            principal_from_json_dict(cls,json_dict,pluribus_switch),
         json_list)
     
         
-def principal_from_json(json_str,pluribus_switch):
+def principal_from_json(cls,json_str,pluribus_switch):
     '''
     @param {String} json_str
 
     @returns {Principal}
     '''
     principal_dict = json.loads(json_str)
-    return principal_from_json_dict(principal_dict,pluribus_switch)
+    return principal_from_json_dict(cls,principal_dict,pluribus_switch)
 
-def principal_from_json_dict(json_dict,pluribus_switch):
+def principal_from_json_dict(cls,json_dict,pluribus_switch):
     '''
     @param {dict} json_dict --- @see Principal.to_json_str for format
     of dict.
@@ -224,7 +150,7 @@ def principal_from_json_dict(json_dict,pluribus_switch):
     
     @returns {Principal}
     '''
-    return Principal(
+    return cls(
         pluribus_switch,
         sets.ImmutableSet(json_dict['physical_ports']),
         json_dict['listening_ip_addr'],
