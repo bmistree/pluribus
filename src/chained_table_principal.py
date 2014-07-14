@@ -1,6 +1,13 @@
+import pickle
+
 from principals_util import Principal
 from conf import pluribus_logger
 from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
+
+from translation_exceptions import InvalidTableWriteException
+from translation_exceptions import InvalidGotoTableException
+from translation_exceptions import InvalidOutputAction
+from translation_exceptions import InvalidPacketInPortMatch
 
 class ChainedTablePrincipal(Principal):
 
@@ -87,12 +94,74 @@ class ChainedTablePrincipal(Principal):
         '''
         @param {extended_v3_parser.OFPFlowMod} msg
 
-        When we receive an addition flow mod, translate the tables
-        that it is affecting to physical tables.
-        
         '''
         # FIXME: must handle flow mod request for chained tables
         pluribus_logger.error(
-            'FIXME: must handle flow mod request for chained tables')
+            'FIXME: still handling flow mod request for chained tables')
+
+        # FIXME: catch potential exceptions from generating packets
+        # and return appropriate error codes.
+        
+        early_table_flow_mod_msg,late_table_flow_mod_msg = (
+            produce_early_late_flow_mods(self,msg))
+
+        if early_table_flow_mod_msg is not None:
+            self.pluribus_switch.send_msg(early_table_flow_mod_msg)
+        if late_table_flow_mod_msg is not None:
+            self.pluribus_switch.send_msg(late_table_flow_mod_msg)
+        
         
 
+def produce_early_late_flow_mods(chained_principal,msg):
+    '''
+    @param {ChainedTablePrincipal} chained_principal
+    @param {extended_v3_parser.OFPFlowMod} msg
+
+    @returns {2-tuple} (a,b):
+
+       a {extended_v3_parser.OFPFlowMod or None}: Flow mod for early
+       table.
+       
+       b {extended_v3_parser.OFPFlowMod or None}: Flow mod for late
+       table.
+
+    PART 0:
+        First check if we need to duplicate message --- one for
+        early tables and one for late tables.  We will need to
+        duplicate if:
+            * Match does not include a physical port
+            * Match does not include a logical port
+
+    PART 1:
+        More to do
+    '''
+    early_table_flow_mod_msg = None
+    late_table_flow_mod_msg = None
+
+
+    #### PART 0:
+    match_in_port = msg.match.get('in_port')
+
+    if match_in_port is None:
+        # means installing an entry that does not match on a
+        # particular port.  Install in both early and late.
+        early_table_flow_mod_msg = msg
+        late_table_flow_mod_msg = duplicate_flow_mod(msg)
+    elif match_in_port in chained_principal.physical_port_set:
+        # means that we only need to install rule in early table
+        early_table_flow_mod_msg = msg
+    elif match_in_port in chained_principal.egress_logical_port_num_to_table_id:
+        # means that we only need to install rule in late table
+        late_table_flow_mod_msg = msg
+    else:
+        raise InvalidPacketInPortMatch()
+
+
+    #### PART 1:
+    pluribus_logger.error('Must finish producing early and late flow tables')
+    
+    return early_table_flow_mod_msg, late_table_flow_mod_msg
+        
+
+def duplicate_flow_mod(flow_mod_msg):
+    return pickle.loads(pickle.dumps(flow_mod_msg))

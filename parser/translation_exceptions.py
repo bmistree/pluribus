@@ -15,3 +15,9 @@ class InvalidOutputAction (Exception):
     '''
     Flowmod instruction tries to write out of an incorrect port.
     '''
+
+#### Exceptions unique to chained table approach
+class InvalidPacketInPortMatch(Exception):
+    '''
+    Flowmod instruction tries to match to an invalid port.
+    '''
