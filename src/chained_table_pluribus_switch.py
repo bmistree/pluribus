@@ -64,8 +64,9 @@ class ChainedTablePluribusSwitch(PluribusSwitch):
                 assigning_early_table_index,early_tables_per_principal)
 
             late_table_index = assigning_early_table_index + num_early_tables
-            late_tables = range(late_table_index, late_tables_per_principal)
-
+            late_tables = range(late_table_index,
+                                late_table_index + late_tables_per_principal)
+            
             # update next index to assign frmo
             assigning_early_table_index += num_early_tables
 
@@ -98,11 +99,23 @@ class ChainedTablePluribusSwitch(PluribusSwitch):
         
     def _send_head_table_flow_mod(self,principal):
         '''
-        @param {Principal} principal
+        @param {ChainedTablesPrincipal} principal
         
         Sends a flow mod request to head table to install rules for
         principal.
         '''
-        # FIXME: must fill in send_head_table_flow_mod
-        pluribus_logger.error(
-            'FIXME: must fill in send_head_table_flow_mod')
+        principal_first_physical_table = (
+            principal.get_first_early_table_physical_id())
+        
+        for port_num in principal.physical_port_set:
+
+            match = self.switch_dp.ofproto_parser.OFPMatch(
+                in_port=port_num)
+            instructions = [
+                OFPInstructionGotoTable(principal_first_physical_table)]
+            # priority is irrelevant because have disjoint matches
+            priority = 10
+            self.add_flow_mod(match,instructions,priority,HEAD_TABLE_ID)
+
+        # note: do not send barrier here.  rely on caller to send
+        # barrier.
