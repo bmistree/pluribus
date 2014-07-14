@@ -178,9 +178,14 @@ class PluribusSwitch(app_manager.RyuApp):
         '''
         self.port_name_number_list = []
         for p in ev.msg.body:
+            if p.port_no ==  ofproto_v1_3.OFPP_LOCAL:
+                # do not forward back local port to other principals
+                continue
+            
             self.port_name_number_list.append(
                 PortNameNumber(p.name,p.port_no))        
 
+            
         if self.state == SwitchState.UNINITIALIZED:
             self._transition_from_uninitialized()
         #### DEBUG
