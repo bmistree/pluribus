@@ -52,7 +52,7 @@ class PluribusSwitch(app_manager.RyuApp):
         table_id = 0
         priority = 30
         match = datapath.ofproto_parser.OFPMatch(
-            in_port=0)
+            in_port=5)
 
         # forward all matches out of ports
         actions = [datapath.ofproto_parser.OFPActionOutput(1)]

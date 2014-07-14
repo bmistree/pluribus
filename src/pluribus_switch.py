@@ -150,7 +150,7 @@ class PluribusSwitch(app_manager.RyuApp):
     def error_msg_handler(self, ev):
         msg = ev.msg
         
-        if self.state not in SwitchState.RUNNING:
+        if self.state != SwitchState.RUNNING:
             # no graceful retries or anything if get an error while
             # setting up head tables, getting port descriptors, etc.
             # Just fail.
@@ -160,6 +160,11 @@ class PluribusSwitch(app_manager.RyuApp):
                 'QUITTING')
             assert False
 
+        pluribus_logger.error(
+            'OFPErrorMsg received during initialization: ' +
+            ('type=0x%02x code=0x%02x  ' % (msg.type, msg.code)) +
+            'QUITTING')
+        
         pluribus_logger.error(
             'Received ofp error.  Must finish handler method.')
 

@@ -4,6 +4,7 @@ from principals_util import Principal
 from conf import pluribus_logger
 from extended_v3_parser import OFPSwitchFeatures as PluribusSwitchFeatures
 
+from ryu.ofproto import ofproto_v1_3
 from translation_exceptions import InvalidTableWriteException
 from translation_exceptions import InvalidGotoTableException
 from translation_exceptions import InvalidOutputAction
@@ -47,7 +48,7 @@ class ChainedTablePrincipal(Principal):
 
         @param {int} virtual_port_start_id --- Assign a virtual port
         for each port between principals.  Start with this index.
-        '''
+        '''        
         for principal in principals_list:
             # don't create a loopback port to myself.
             if principal.id == self.id:
@@ -58,7 +59,7 @@ class ChainedTablePrincipal(Principal):
             self.egress_logical_port_num_to_table_id[
                 virtual_port_start_id] = first_late_tbl_phys_id
             virtual_port_start_id += 1
-
+            
     def get_first_late_table_physical_id(self):
         return self.late_table_ids[0]
     
@@ -101,7 +102,6 @@ class ChainedTablePrincipal(Principal):
 
         # FIXME: catch potential exceptions from generating packets
         # and return appropriate error codes.
-        
         early_table_flow_mod_msg,late_table_flow_mod_msg = (
             produce_early_late_flow_mods(self,msg))
 
@@ -142,7 +142,7 @@ def produce_early_late_flow_mods(chained_principal,msg):
     #### PART 0:
     match_in_port = msg.match.get('in_port')
 
-    if match_in_port is None:
+    if (match_in_port is None) or (match_in_port == ofproto_v1_3.OFPP_ANY):
         # means installing an entry that does not match on a
         # particular port.  Install in both early and late.
         early_table_flow_mod_msg = msg
@@ -153,6 +153,19 @@ def produce_early_late_flow_mods(chained_principal,msg):
     elif match_in_port in chained_principal.egress_logical_port_num_to_table_id:
         # means that we only need to install rule in late table
         late_table_flow_mod_msg = msg
+        # Overwrite to not match on any ingress port.
+        
+        # FIXME: super-ugly way to remove in_port
+        match = late_table_flow_mod_msg.match
+        for field_tuple_index in range(0,len(match._fields2)):
+            field_tuple = match._fields2[field_tuple_index]
+            if field_tuple[0] == 'in_port':
+                match._fields2[field_tuple_index] = ('in_port',ofproto_v1_3.OFPP_ANY)
+                break
+
+        # NOTE: the below doesn't work.  I assume that the library
+        # assumes that we won't double-add in-ports.
+        # late_table_flow_mod_msg.match.set_in_port(ofproto_v1_3.OFPP_ANY)
     else:
         raise InvalidPacketInPortMatch()
 
