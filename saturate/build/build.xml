@@ -10,9 +10,10 @@
   
   <property name="src_dir" location="../server/"/>
 
-  <property name="server_jar" location="server.jar"/>
-  <property name="server_main_class" location="Main"/>
+  <property name="server_jar" value="server.jar"/>
+  <property name="server_main_class" value="Main"/>
   
+  <property name="server_package" value="server"/>
   
   <!-- set up build directories for test -->
   <target name="init" description="setup build directories">
@@ -39,7 +40,7 @@
     
     <jar destfile="${jar_dir}/${server_jar}" filesetmanifest="mergewithoutmain">
       <manifest>
-        <attribute name="Main-Class" value="${main_class}"/>
+        <attribute name="Main-Class" value="${server_package}.${server_main_class}"/>
         <attribute name="Class-Path" value="${build_dir}"/>
       </manifest>
       <fileset dir="${build_dir}"/>
