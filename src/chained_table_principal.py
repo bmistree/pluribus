@@ -139,7 +139,7 @@ def produce_early_late_flow_mods(chained_principal,msg):
         jump to appropriate table or cause packet in at controller.
 
     PART 2:
-        Do translation for translation actions
+        Do translation for goto actions.
         
     '''
 
@@ -195,7 +195,6 @@ def produce_early_late_flow_mods(chained_principal,msg):
             chained_principal,late_table_flow_mod_msg,False)
 
     pluribus_logger.error('Must finish producing early and late flow tables')
-    
     return early_table_flow_mod_msg, late_table_flow_mod_msg
         
 
