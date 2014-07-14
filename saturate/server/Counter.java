@@ -5,9 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger;
    that period.
  */
 
-public Counter extends Thread
+public class Counter extends Thread
 {
-    public final AtomicInteger counter;
+    public final AtomicInteger counter = new AtomicInteger(0);
     private int previous_counter = 0;
     private static final int POLLING_PERIOD_SECONDS = 10; // poll every 10s
     private static final int SECONDS_TO_MS_MULTIPLIER = 1000;
