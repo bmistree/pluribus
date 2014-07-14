@@ -61,11 +61,13 @@ class ChainedTablePluribusSwitch(PluribusSwitch):
         assigning_early_table_index = 1
         for principal in self.principals:
             early_tables = range(
-                assigning_early_table_index,early_tables_per_principal)
+                assigning_early_table_index,
+                assigning_early_table_index + early_tables_per_principal)
 
             late_table_index = assigning_early_table_index + num_early_tables
-            late_tables = range(late_table_index,
-                                late_table_index + late_tables_per_principal)
+            late_tables = range(
+                late_table_index,
+                late_table_index + late_tables_per_principal)
             
             # update next index to assign frmo
             assigning_early_table_index += num_early_tables
