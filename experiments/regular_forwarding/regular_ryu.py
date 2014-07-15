@@ -77,8 +77,8 @@ class RegularRyu(app_manager.RyuApp):
         priority = 30
 
         instruction_actions = ofproto_v1_3_parser.OFPInstructionActions(
-            ofproto_v1_3.OFPIT_WRITE_ACTIONS,actions)
-
+            ofproto_v1_3.OFPIT_APPLY_ACTIONS,actions)
+        
         instructions = [
             instruction_actions
             ]

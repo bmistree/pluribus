@@ -54,14 +54,20 @@ class PluribusSwitch(app_manager.RyuApp):
         match = datapath.ofproto_parser.OFPMatch(
             in_port=0)
 
+
+        # go to table.
+        # instructions = [
+        #     datapath.ofproto_parser.OFPInstructionGotoTable(1),
+        #     ]
+
         # forward all matches out of ports
         actions = [datapath.ofproto_parser.OFPActionOutput(5)]
         instruction_actions = datapath.ofproto_parser.OFPInstructionActions(
-            datapath.ofproto.OFPIT_WRITE_ACTIONS,actions)
+            datapath.ofproto.OFPIT_APPLY_ACTIONS,actions)
         instructions = [
-            # datapath.ofproto_parser.OFPInstructionGotoTable(1),
             instruction_actions
             ]
+
         
         flow_mod_msg = datapath.ofproto_parser.OFPFlowMod(
             datapath, # datapath
