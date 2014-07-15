@@ -60,21 +60,35 @@ class RegularRyu(app_manager.RyuApp):
     def install_rules(self):
         time.sleep(10)
         print '\nAbout to install rules\n'
-
+        high_priority = 30
+        low_priority = 10
+        
         match_one_to_two = self.switch_dp.ofproto_parser.OFPMatch(
-            in_port=PORT_1)
+            in_port=PORT_1,eth_type=0x800)
         actions_one_to_two = [ofproto_v1_3_parser.OFPActionOutput(PORT_2)]
-        self.perform_mod(match_one_to_two,actions_one_to_two)
+        self.perform_mod(match_one_to_two,actions_one_to_two,high_priority)
         
         match_two_to_one = self.switch_dp.ofproto_parser.OFPMatch(
-            in_port=PORT_2)
+            in_port=PORT_2,eth_type=0x800)
         actions_two_to_one = [self.switch_dp.ofproto_parser.OFPActionOutput(PORT_1)]
-        self.perform_mod(match_two_to_one,actions_two_to_one)
+        self.perform_mod(match_two_to_one,actions_two_to_one,high_priority)
 
+        # allow all arp processing to be standard
+        actions_arp = [
+            self.switch_dp.ofproto_parser.OFPActionOutput(
+                self.switch_dp.ofproto.OFPP_NORMAL)]
+        
+        match_one_to_two_arp = self.switch_dp.ofproto_parser.OFPMatch(
+            in_port=PORT_1)
+        self.perform_mod(match_one_to_two_arp,actions_arp,low_priority)
+        
+        match_two_to_one_arp = self.switch_dp.ofproto_parser.OFPMatch(
+            in_port=PORT_2)
+        self.perform_mod(match_two_to_one_arp,actions_arp,low_priority)
+        
 
-    def perform_mod(self,match,actions):
+    def perform_mod(self,match,actions,priority):
         table_id = 0
-        priority = 30
 
         instruction_actions = ofproto_v1_3_parser.OFPInstructionActions(
             ofproto_v1_3.OFPIT_APPLY_ACTIONS,actions)
