@@ -176,7 +176,7 @@ class PluribusSwitch(app_manager.RyuApp):
             
     ##### Switch initialization code ####
     
-    def _init_recv_port_stats_response_config(self,ev):
+    def _populate_ports_from_port_stats_response(self,ev):
         '''
         As part of initialization, determine which ports are logical
         and which ports are physical.
@@ -190,15 +190,6 @@ class PluribusSwitch(app_manager.RyuApp):
             self.port_name_number_list.append(
                 PortNameNumber(p.name,p.port_no))        
 
-            
-        if self.state == SwitchState.UNINITIALIZED:
-            self._transition_from_uninitialized()
-        #### DEBUG
-        else:
-            pluribus_logger.error(
-                'Unexpected state transition when receiving response')
-            assert False
-        #### END DEBUG
 
     def _transition_from_installing_head_tables(self):
         '''
@@ -211,23 +202,6 @@ class PluribusSwitch(app_manager.RyuApp):
         for principal in self.principals:
             principal.connect()
 
-
-    def _transition_from_uninitialized(self):
-        '''
-        When receive port stats, can start allocating virtual ports to
-        principals and installing head table.  This method does that.
-
-        Does four things:
-          0) Transition into INSTALLING_HEAD_TABLES state
-          1) Assigns each principal a set of physical tables.
-          2) Assigns each principal a set of logical ports.
-          3) Sets a head table that gotos the principal's
-             first table.
-        
-        '''
-        # should be overridden by subclasses
-        assert False
-            
             
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures,[CONFIG_DISPATCHER])
     def _recv_switch_features_response(self,ev):

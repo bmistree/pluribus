@@ -23,9 +23,11 @@ class LogicalPortPluribusSwitch(PluribusSwitch):
         As part of initialization, determine which ports are logical
         and which ports are physical.
         '''
-        # call parent class
-        super(LogicalPortPluribusSwitch,
-              self)._init_recv_port_stats_response_config(ev)
+        pluribus_logger.info('Setting port stats response')
+        
+        # call parent class to create port name number list
+        self._populate_ports_from_port_stats_response(ev)
+        
         self.logical_port_pair_halves = (
             set_logical_physical(self.port_name_number_list))
 
@@ -39,8 +41,19 @@ class LogicalPortPluribusSwitch(PluribusSwitch):
                 ('Can only support %i principals, not %i.' %
                  (self.num_principals_can_support, len(self.principals))))
             assert False
-        
+
+            
+        if self.state == SwitchState.UNINITIALIZED:
+            self._transition_from_uninitialized()
+        #### DEBUG
+        else:
+            pluribus_logger.error(
+                'Unexpected state transition when receiving response')
+            assert False
+        #### END DEBUG
+            
         self._debug_print_ports()
+
         
     def _transition_from_uninitialized(self):
         '''
@@ -97,19 +110,19 @@ class LogicalPortPluribusSwitch(PluribusSwitch):
 
             
         #### PART 2: Assign logical ports
-        logical_port_index = 0
-        for i in range(0, len(self.principals)):
-            principal_a = self.principals[i]
-            for j in range(i+1,len(self.principals)):
-                principal_b = self.principals[j]
-                
-                logical_port_a = (
-                    self.logical_port_pair_halves[logical_port_index])
-                logical_port_b = logical_port_a.get_partner()
-                logical_port_index += 1
+        # logical_port_index = 0
+        # for i in range(0, len(self.principals)):
+        #     principal_a = self.principals[i]
+        #     for j in range(i+1,len(self.principals)):
+        #         principal_b = self.principals[j]
 
-                principal_a.add_logical_mapping(logical_port_a,principal_b)
-                principal_b.add_logical_mapping(logical_port_b,principal_a)
+        #         logical_port_a = (
+        #             self.logical_port_pair_halves[logical_port_index])
+        #         logical_port_b = logical_port_a.get_partner()
+        #         logical_port_index += 1
+
+        #         principal_a.add_logical_mapping(logical_port_a,principal_b)
+        #         principal_b.add_logical_mapping(logical_port_b,principal_a)
 
 
         #### PART 3: Set head table for each principal
