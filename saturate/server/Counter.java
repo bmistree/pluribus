@@ -14,6 +14,11 @@ public class Counter extends Thread
     private static final int POLLING_PERIOD_SECONDS = 10; // poll every 10s
     private static final int SECONDS_TO_MS_MULTIPLIER = 1000;
 
+    public Counter()
+    {
+        super();
+        this.setDaemon(true);
+    }
     
     @Override
     public void run()
