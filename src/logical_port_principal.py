@@ -49,7 +49,7 @@ class LogicalPortPrincipal(Principal):
             logical_port)
         self.ingress_logical_port_nums_to_principals[logical_port.port_number] = (
             partnered_principal)
-        self.egress_logical_port_nums_to_principals[parnter_port.port_number] = (
+        self.egress_logical_port_nums_to_principals[partner_port.port_number] = (
             partnered_principal)
         
     def get_ingress_logical_port_num_list(self):

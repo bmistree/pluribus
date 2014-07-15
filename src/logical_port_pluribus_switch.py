@@ -110,19 +110,19 @@ class LogicalPortPluribusSwitch(PluribusSwitch):
 
             
         #### PART 2: Assign logical ports
-        # logical_port_index = 0
-        # for i in range(0, len(self.principals)):
-        #     principal_a = self.principals[i]
-        #     for j in range(i+1,len(self.principals)):
-        #         principal_b = self.principals[j]
+        logical_port_index = 0
+        for i in range(0, len(self.principals)):
+            principal_a = self.principals[i]
+            for j in range(i+1,len(self.principals)):
+                principal_b = self.principals[j]
 
-        #         logical_port_a = (
-        #             self.logical_port_pair_halves[logical_port_index])
-        #         logical_port_b = logical_port_a.get_partner()
-        #         logical_port_index += 1
+                logical_port_a = (
+                    self.logical_port_pair_halves[logical_port_index])
+                logical_port_b = logical_port_a.get_partner()
+                logical_port_index += 1
 
-        #         principal_a.add_logical_mapping(logical_port_a,principal_b)
-        #         principal_b.add_logical_mapping(logical_port_b,principal_a)
+                principal_a.add_logical_mapping(logical_port_a,principal_b)
+                principal_b.add_logical_mapping(logical_port_b,principal_a)
 
 
         #### PART 3: Set head table for each principal
