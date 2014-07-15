@@ -16,7 +16,22 @@ class ChainedTablePluribusSwitch(PluribusSwitch):
     def __init__(self, *args, **kwargs):
         super(ChainedTablePluribusSwitch, self).__init__(
             ChainedTablePrincipal,*args, **kwargs)
-    
+
+    def _init_recv_port_stats_response_config(self,ev):
+        '''
+        As part of initialization, determine which ports are logical
+        and which ports are physical.
+        '''
+        self._populate_ports_from_port_stats_response(ev)
+        if self.state == SwitchState.UNINITIALIZED:
+            self._transition_from_uninitialized()
+        #### DEBUG
+        else:
+            pluribus_logger.error(
+                'Unexpected state transition when receiving response')
+            assert False
+        #### END DEBUG
+        
         
     def _transition_from_uninitialized(self):
         '''

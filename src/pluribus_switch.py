@@ -175,6 +175,13 @@ class PluribusSwitch(app_manager.RyuApp):
     
             
     ##### Switch initialization code ####
+
+    def _init_recv_port_stats_response_config(self,ev):
+        '''
+        As part of initialization, determine which ports are logical
+        and which ports are physical.
+        '''
+        assert False
     
     def _populate_ports_from_port_stats_response(self,ev):
         '''
