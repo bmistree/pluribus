@@ -14,9 +14,9 @@ public class Client extends Thread
     public Client(String ip_addr, int udp_port) throws IOException
     {
         super();
-        setDaemone(true);
+        setDaemon(true);
         socket = new DatagramSocket();
-        server_ip_addr = new InetAddress(ip_addr);
+        server_ip_addr = InetAddress.getByName(ip_addr);
         server_udp_port = udp_port;
     }
 

@@ -8,12 +8,19 @@
   <property name="build_dir" location="classes"/>
   <property name="jar_dir" location="jar_dir"/>
   
-  <property name="src_dir" location="../server/"/>
-
+  <property name="server_src_dir" location="../server/"/>
+  <property name="client_src_dir" location="../client/"/>
+  
   <property name="server_jar" value="server.jar"/>
   <property name="server_main_class" value="Main"/>
   
   <property name="server_package" value="server"/>
+
+  <property name="client_jar" value="client.jar"/>
+  <property name="client_main_class" value="Main"/>
+  
+  <property name="client_package" value="client"/>
+
   
   <!-- set up build directories for test -->
   <target name="init" description="setup build directories">
@@ -23,19 +30,30 @@
   </target>
 
   
-  <target name="src_to_byte_code" depends="init" description="compile java files">
+  <target name="server_src_to_byte_code" depends="init" description="compile java files">
     <!-- Compile all ralph java to bytecode -->
     <javac
-        srcdir="${src_dir}"
+        srcdir="${server_src_dir}"
         destdir="${build_dir}"
         debug="true"
         debuglevel="lines,vars,source"
         includeantruntime="false" />
   </target>
+
+  <target name="client_src_to_byte_code" depends="init" description="compile java files">
+    <!-- Compile all ralph java to bytecode -->
+    <javac
+        srcdir="${client_src_dir}"
+        destdir="${build_dir}"
+        debug="true"
+        debuglevel="lines,vars,source"
+        includeantruntime="false" />
+  </target>
+
   
   <!-- Make server jar -->
   <target name="make_server_jar"
-          depends="src_to_byte_code"
+          depends="server_src_to_byte_code"
           description="Make a jar">
     
     <jar destfile="${jar_dir}/${server_jar}" filesetmanifest="mergewithoutmain">
@@ -47,6 +65,20 @@
     </jar>
   </target>
 
+  <target name="make_client_jar"
+          depends="client_src_to_byte_code"
+          description="Make a jar">
+    
+    <jar destfile="${jar_dir}/${client_jar}" filesetmanifest="mergewithoutmain">
+      <manifest>
+        <attribute name="Main-Class" value="${client_package}.${client_main_class}"/>
+        <attribute name="Class-Path" value="${build_dir}"/>
+      </manifest>
+      <fileset dir="${build_dir}"/>
+    </jar>
+  </target>
+
+  
   <!-- Delete the build directories -->
   <target name="clean" description="get rid of build dir">
     <delete dir="${build_dir}"/>
