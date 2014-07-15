@@ -12,7 +12,7 @@ def run(jar_name, ip_addr, port_number,num_clients):
     signal.signal(signal.SIGINT, signal_handler)
     
     cmd_vec = ['java','-jar',jar_name,ip_addr, port_number]
-    for i in range(0,num_clients):
+    for i in range(0,int(num_clients)):
         all_procs.append(subprocess.Popen(cmd_vec,shell=False))
             
     while True:
